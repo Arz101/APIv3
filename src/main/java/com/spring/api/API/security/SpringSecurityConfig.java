@@ -31,9 +31,13 @@ public class SpringSecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http.authorizeHttpRequests(auth -> auth
+            .requestMatchers(HttpMethod.GET, "/", "/index.html").permitAll()
+                .requestMatchers(HttpMethod.GET, "/**/*.css", "/**/*.js", "/**/*.map", "/**/*.ico", "/**/*.png", "/**/*.jpg", "/**/*.svg").permitAll()
                 .requestMatchers(HttpMethod.POST, "/users/register").permitAll()
                 .requestMatchers(HttpMethod.POST, "/profiles/create").permitAll()
                 .requestMatchers(HttpMethod.POST, "/auth/**").permitAll()
+            .requestMatchers("/ws").permitAll()
+                .requestMatchers("/ws/**").permitAll()
                 .anyRequest().authenticated()
         );
 

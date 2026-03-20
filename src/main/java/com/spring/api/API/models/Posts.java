@@ -40,9 +40,10 @@ public class Posts {
 
     public Posts(){}
 
-    public Posts(CreatePostDTO postsDTO){
+    public Posts(CreatePostDTO postsDTO, Profiles profile){
         this.description = postsDTO.getDescription();
         this.picture = postsDTO.getPicture();
+        this.profile = profile;
     }
 
     public Long getId() {

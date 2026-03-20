@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat STOMP Test</title>
+    <style>
+        :root {
+            --bg: #0f1a23;
+            --card: #162534;
+            --text: #e6edf3;
+            --muted: #8aa0b2;
+            --accent: #34d399;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+            background: radial-gradient(circle at 20% 20%, #1f3346, var(--bg));
+            color: var(--text);
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+
+        .panel {
+            width: min(700px, 100%);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0));
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 20px;
+            backdrop-filter: blur(2px);
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            font-size: 1.25rem;
+        }
+
+        .status {
+            margin: 0 0 14px;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        input {
+            flex: 1;
+            min-width: 220px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.2);
+            color: var(--text);
+            padding: 10px 12px;
+            border-radius: 8px;
+        }
+
+        button {
+            border: none;
+            background: var(--accent);
+            color: #062114;
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        button.secondary {
+            background: #93c5fd;
+            color: #041327;
+        }
+
+        button.danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        ul {
+            margin: 12px 0 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 8px;
+        }
+
+        li {
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            background: rgba(0, 0, 0, 0.18);
+            border-radius: 8px;
+            padding: 10px;
+            word-break: break-word;
+        }
+    </style>
+</head>
+<body>
+    <section class="panel">
+        <h1>Prueba de Chat STOMP</h1>
+        <p id="status" class="status">Estado: desconectado</p>
+
+        <div class="row">
+            <button id="connectBtn">Conectar</button>
+            <button id="disconnectBtn" class="danger">Desconectar</button>
+        </div>
+
+        <div class="row">
+            <input id="msg" placeholder="Escribe algo" />
+            <button id="sendBtn" class="secondary">Enviar</button>
+        </div>
+
+        <ul id="messages"></ul>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.1.0/bundles/stomp.umd.min.js"></script>
+    <script>
+        const statusEl = document.getElementById("status");
+        const messagesEl = document.getElementById("messages");
+        const msgInput = document.getElementById("msg");
+
+        let client = null;
+
+        function setStatus(text) {
+            statusEl.textContent = "Estado: " + text;
+        }
+
+        function addMessage(text) {
+            const li = document.createElement("li");
+            li.textContent = text;
+            messagesEl.appendChild(li);
+        }
+
+        function connect() {
+            if (client && client.active) {
+                addMessage("Ya existe una conexion activa.");
+                return;
+            }
+
+            setStatus("conectando...");
+
+            client = new StompJs.Client({
+                brokerURL: "ws://localhost:8080/ws",
+                reconnectDelay: 0,
+                debug: (line) => console.log("[STOMP]", line)
+            });
+
+            client.onConnect = () => {
+                setStatus("conectado");
+                addMessage("Conectado a ws://localhost:8080/ws");
+
+                client.subscribe("/topic/messages", (frame) => {
+                    addMessage("Recibido: " + frame.body);
+                });
+            };
+
+            client.onWebSocketError = (error) => {
+                setStatus("error websocket");
+                console.error(error);
+                addMessage("Error de WebSocket. Revisa que la API este corriendo.");
+            };
+
+            client.onStompError = (frame) => {
+                setStatus("error stomp");
+                addMessage("STOMP error: " + (frame.headers.message || "sin mensaje"));
+                console.error(frame);
+            };
+
+            client.onDisconnect = () => {
+                setStatus("desconectado");
+            };
+
+            client.activate();
+        }
+
+        function disconnect() {
+            if (!client) {
+                setStatus("desconectado");
+                return;
+            }
+            client.deactivate();
+            setStatus("desconectado");
+        }
+
+        function sendMessage() {
+            if (!client || !client.connected) {
+                addMessage("No hay conexion activa.");
+                return;
+            }
+
+            const text = msgInput.value.trim();
+            if (!text) {
+                return;
+            }
+
+            client.publish({
+                destination: "/app/chat",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ content: text })
+            });
+
+            addMessage("Enviado: " + text);
+            msgInput.value = "";
+            msgInput.focus();
+        }
+
+        document.getElementById("connectBtn").addEventListener("click", connect);
+        document.getElementById("disconnectBtn").addEventListener("click", disconnect);
+        document.getElementById("sendBtn").addEventListener("click", sendMessage);
+        msgInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
