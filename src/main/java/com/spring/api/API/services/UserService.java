@@ -2,12 +2,13 @@ package com.spring.api.API.services;
 
 import com.spring.api.API.Repositories.IUserRepository;
 import com.spring.api.API.models.DTOs.User.CreateUserDTO;
+import com.spring.api.API.models.DTOs.User.UpdateUserDTO;
 import com.spring.api.API.models.DTOs.User.UserResponseDTO;
 import com.spring.api.API.models.User;
 import com.spring.api.API.security.Exceptions.EmailException;
 import com.spring.api.API.security.Exceptions.UserAlreadyExistsException;
 import com.spring.api.API.security.Exceptions.UserNotFoundException;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -65,6 +66,7 @@ public class UserService {
         );
     }
 
+    @Transactional(readOnly = true)
     public UserResponseDTO findByUsername(String username){
         User user = this.repository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
@@ -74,6 +76,29 @@ public class UserService {
                 user.getUsername(),
                 user.getEmail(),
                 user.getStatus()
+        );
+    }
+
+
+    @Transactional
+    public UserResponseDTO updateUser(UpdateUserDTO new_data, String username){
+        User curr = this.repository.findByUsername(username)
+            .orElseThrow(() -> new UserNotFoundException("Something went wrong"));
+        
+        if (this.repository.existsByUsername(new_data.getUsername())){
+            throw new UserAlreadyExistsException("Username already in use");
+        }
+
+        curr.setUsername(new_data.getUsername());
+        if (this.passwordEncoder.matches(new_data.getPassword(), curr.getPassword())){
+            curr.setPassword(this.passwordEncoder.encode((new_data.getPassword())));
+        }
+        this.repository.save(curr);
+        return new UserResponseDTO(
+            curr.getId(),
+            curr.getUsername(),
+            curr.getEmail(),
+            curr.getStatus()
         );
     }
 }

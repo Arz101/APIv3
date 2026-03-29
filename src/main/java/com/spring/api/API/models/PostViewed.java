@@ -2,7 +2,7 @@ package com.spring.api.API.models;
 
 import java.time.OffsetDateTime;
 
-import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.ColumnDefault;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -14,33 +14,32 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "likes")
-public class Likes {
+@Table(
+    name = "postviewed"
+)
+public class PostViewed {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
+    @JoinColumn(name = "post_id")
+    private Posts post;
+
+    @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
 
-    @ManyToOne
-    @JoinColumn(name = "publication_id")
-    private Posts post;
+    @ColumnDefault("now()")
+    @Column(name = "datecreated")
+    private OffsetDateTime dateCreated = OffsetDateTime.now();
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false)
-    private OffsetDateTime created_at;
-
-    protected Likes() {
-    }
-
-    
-
-    public Likes(User user, Posts post) {
-        this.user = user;
+    public PostViewed(Posts post, User user) {
         this.post = post;
+        this.user = user;
     }
+
+    protected PostViewed(){}
 
     public Long getId() {
         return id;
@@ -48,14 +47,6 @@ public class Likes {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
     }
 
     public Posts getPost() {
@@ -66,11 +57,19 @@ public class Likes {
         this.post = post;
     }
 
-    public OffsetDateTime getCreated_at() {
-        return created_at;
+    public User getUser() {
+        return user;
     }
 
-    public void setCreated_at(OffsetDateTime created_at) {
-        this.created_at = created_at;
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public OffsetDateTime getDateCreated() {
+        return dateCreated;
+    }
+
+    public void setDateCreated(OffsetDateTime dateCreated) {
+        this.dateCreated = dateCreated;
     }
 }

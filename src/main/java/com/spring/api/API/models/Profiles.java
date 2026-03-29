@@ -8,7 +8,7 @@ import java.time.LocalDate;
 
 @Entity
 @Table(
-        name = "\"Profiles\"",
+        name = "profiles",
         uniqueConstraints = {
                 @UniqueConstraint(name = "ix_Profiles_user_id", columnNames = "user_id"),
                 @UniqueConstraint(name = "Profiles_pkey", columnNames = "profile_id")

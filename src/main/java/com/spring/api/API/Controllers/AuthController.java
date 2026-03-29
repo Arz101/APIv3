@@ -76,4 +76,9 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.OK).body("Account activated successfully");
     }
     
+    @PostMapping("reset-password")
+    public ResponseEntity<?> resetpassword(@RequestBody String entity) {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body("No implemented yet :'(");
+    }
+    
 }

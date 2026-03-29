@@ -10,9 +10,8 @@ import com.spring.api.API.models.Profiles;
 import com.spring.api.API.models.User;
 import com.spring.api.API.security.Exceptions.ProfilePrivateException;
 import com.spring.api.API.security.Exceptions.UserNotFoundException;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
-
 import java.util.Optional;
 
 @Service
@@ -69,6 +68,7 @@ public class ProfileService {
         );
     }
 
+    @Transactional(readOnly = true)
     public ProfileResponseDTO search_profile(String target, String currentUser){
         Profiles profile = this.repository.findProfilesByUserUsername(target)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));

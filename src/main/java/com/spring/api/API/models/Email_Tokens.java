@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "\"Email_Tokens\"")
+@Table(name = "email_tokens")
 public class Email_Tokens {
     
     @Id

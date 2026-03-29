@@ -7,7 +7,7 @@ import com.spring.api.API.models.Email_Tokens;
 import com.spring.api.API.models.Tokens;
 import com.spring.api.API.models.User;
 import com.spring.api.API.security.Exceptions.InvalidTokenException;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
@@ -34,9 +34,13 @@ public class TokenService {
         String token;
         long start = System.currentTimeMillis();
         User user = this.userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));        
 
-        this.repository.revokeAllByUser(user);
+        if(this.repository.existsAnActiveToken(user)){
+            Tokens currentToken = this.repository.getCurrectTokenByUser(user);
+            currentToken.setRevoked(true);
+            this.repository.saveAndFlush(currentToken);
+        }
 
         token = UUID.randomUUID().toString();
 
@@ -52,6 +56,7 @@ public class TokenService {
         return token;
     }
 
+    @Transactional(readOnly = true)
     public String validate_refresh_token(String token_hash){
         Tokens token = this.repository.findByTokenHashAndRevoked(token_hash, false)
                 .orElseThrow(() -> new InvalidTokenException("Invalid Token"));

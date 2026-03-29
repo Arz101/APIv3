@@ -11,7 +11,7 @@ import java.time.OffsetDateTime;
 
 @Entity
 @Table(
-        name = "\"Publications\"",
+        name = "posts",
         indexes = {
                 @Index(name = "ix_Publications_id", columnList = "id")
         }

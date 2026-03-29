@@ -9,7 +9,7 @@ import java.time.OffsetDateTime;
 
 @Entity
 @Table(
-        name = "\"Users\"",
+        name = "users",
         uniqueConstraints = {
                 @UniqueConstraint(name = "UQ_email", columnNames = "email"),
                 @UniqueConstraint(name = "UQ_username", columnNames = "username")

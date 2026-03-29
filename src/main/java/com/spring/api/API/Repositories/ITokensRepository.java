@@ -20,4 +20,18 @@ public interface ITokensRepository extends JpaRepository<Tokens, Long> {
         WHERE t.assignedTo = :user AND t.revoked = false
     """)
     void revokeAllByUser(@Param("user") User user);
+
+    @Query("""
+        SELECT t
+        FROM Tokens t
+        WHERE t.assignedTo = :user AND t.revoked = false
+    """)
+    Tokens getCurrectTokenByUser(@Param("user") User user);
+
+    @Query("""
+        SELECT COUNT(*) >= 1
+        FROM Tokens t
+        WHERE t.assignedTo =:user AND t.revoked = false
+    """)
+    Boolean existsAnActiveToken(@Param("user") User user);
 }

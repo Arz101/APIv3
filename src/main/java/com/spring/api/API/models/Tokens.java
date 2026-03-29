@@ -9,7 +9,7 @@ import java.time.OffsetDateTime;
 
 @Entity
 @Table (
-        name = "\"Tokens\"",
+        name = "tokens",
         indexes = {
                 @Index(name = "ix_tokens_token_hash", columnList = "token_hash"),
                 @Index(name = "ix_Tokens_id", columnList = "id"),
