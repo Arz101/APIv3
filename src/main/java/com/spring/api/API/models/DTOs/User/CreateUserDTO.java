@@ -13,6 +13,6 @@ public record CreateUserDTO (
     String status
 ) {
     public CreateUserDTO{
-        if(status == null) status = "pending";
+        if(status == null) status = "active";
     }
 }

@@ -17,7 +17,7 @@ public class FollowsController {
     }
 
     @PostMapping("/")
-    public ResponseEntity<?> follow_user(@RequestParam() String username, @NonNull Authentication auth){
+    public ResponseEntity<?> follow_user(@RequestParam("username") String username, @NonNull Authentication auth){
         return ResponseEntity.status(HttpStatus.CREATED).body(this.service.follow_user(username, auth.getName()));
     }
 

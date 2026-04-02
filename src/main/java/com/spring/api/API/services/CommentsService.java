@@ -1,9 +1,10 @@
 package com.spring.api.API.services;
 
 import com.spring.api.API.Repositories.IPostViewedRepository;
-import com.spring.api.API.models.DTOs.Comments.UpdateCommentDTO;
+import com.spring.api.API.models.DTOs.Comments.*;
 import com.spring.api.API.models.PostViewed;
 import com.spring.api.API.security.Exceptions.CommentsActionsUnauthorized;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.spring.api.API.Repositories.ICommentsRepository;
@@ -12,8 +13,6 @@ import com.spring.api.API.Repositories.IUserRepository;
 import com.spring.api.API.models.Comments;
 import com.spring.api.API.models.Posts;
 import com.spring.api.API.models.User;
-import com.spring.api.API.models.DTOs.Comments.CommentsCreateDTO;
-import com.spring.api.API.models.DTOs.Comments.CommentsResponse;
 import com.spring.api.API.security.Exceptions.CommentsNotFoundExceptions;
 import com.spring.api.API.security.Exceptions.PostNotFoundException;
 import com.spring.api.API.security.Exceptions.UserNotFoundException;
@@ -42,14 +41,14 @@ public class CommentsService {
     }
 
     @Transactional
-    public CommentsResponse create(CommentsCreateDTO comment, String username){
+    public CommentResponse create(@NonNull CommentsCreateDTO comment, String username){
         User curr = this.userRepository.findByUsername(username)
             .orElseThrow(() -> new UserNotFoundException("Something went wrong"));
         
         Posts post = this.postsRepository.findById(comment.post_id())
             .orElseThrow(() -> new PostNotFoundException("Post not found"));
         
-        Comments new_comment = this.repository.save(new Comments(
+        Comments newComment = this.repository.save(new Comments(
             post,
             curr,
             comment.content()
@@ -59,12 +58,13 @@ public class CommentsService {
             this.postViewedRepository.save(new PostViewed(post, curr));
         }
 
-        return new CommentsResponse(
-            new_comment.getId(),
-            new_comment.getPost().getId(),
-            new_comment.getUser().getUsername(),
-            new_comment.getContent(),
-            new_comment.getDatecreated()
+        return new CommentResponse(
+            newComment.getId(),
+            newComment.getContent(),
+            newComment.getDateCreated(),
+            newComment.getUser().getUsername(),
+            null,
+            newComment.getPost().getId()
         );
     }
 
@@ -80,12 +80,12 @@ public class CommentsService {
     }
 
     @Transactional(readOnly = true)
-    public List<CommentsResponse> findCommentsByPostId(Long post_id){
+    public List<CommentResponse> findCommentsByPostId(Long post_id){
         return this.repository.findCommentsByPostId(post_id);
     }
 
     @Transactional
-    public CommentsResponse updateComment(UpdateCommentDTO data, String username){
+    public CommentResponse updateComment(@NonNull UpdateCommentDTO data, String username){
         Long user_id = this.userRepository.getIdByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
@@ -93,14 +93,50 @@ public class CommentsService {
                 .orElseThrow(() -> new CommentsActionsUnauthorized("Unauthorized Actions"));
 
         comment.setContent(data.content());
-        Comments comment_mod = this.repository.save(comment);
+        Comments newComment = this.repository.save(comment);
 
-        return new CommentsResponse(
-                comment_mod.getId(),
-                comment_mod.getPost().getId(),
-                comment_mod.getUser().getUsername(),
-                comment_mod.getContent(),
-                comment_mod.getDatecreated()
+        return new CommentResponse(
+                newComment.getId(),
+                newComment.getContent(),
+                newComment.getDateCreated(),
+                newComment.getUser().getUsername(),
+                null,
+                newComment.getPost().getId()
         );
     }
+
+    @Transactional
+    public CommentResponse replayComment(@NonNull CommentReplyCreate newComment,
+                                          String username,
+                                          Long parent_id){
+
+        var currentUser = this.userRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("Something went wrong"));
+
+        var commentToRep = this.repository.getReferenceById(parent_id);
+        var post = this.postsRepository.getReferenceById(commentToRep.getPost().getId());
+
+        var comment = this.repository.save(new Comments(
+                post,
+                currentUser,
+                newComment.content(),
+                commentToRep
+        ));
+
+        return new CommentResponse(
+                comment.getId(),
+                comment.getContent(),
+                comment.getDateCreated(),
+                comment.getUser().getUsername(),
+                commentToRep.getId(),
+                comment.getPost().getId()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<?> getCommentsByPostId(Long postId){
+        var comments = this.repository.getCommentsByPostId(postId);
+        return new CommentsHierarchy().buildHierarchy(comments);
+    }
 }
+

@@ -48,7 +48,7 @@ public class UserService {
         String token = this.tokenService.saveAccountTokens(new_user);
 
         try {
-            this.emailService.sendHTMLEmail(new_user.getEmail(), "Confirm your account", token);
+            //this.emailService.sendHTMLEmail(new_user.getEmail(), "Confirm your account", token);
         } catch (Exception e) {
             throw new EmailException("Failed to send confirmation email: " + e.getMessage());
         }

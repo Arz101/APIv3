@@ -1,11 +1,11 @@
 package com.spring.api.API.Repositories;
 
+import com.spring.api.API.models.DTOs.Posts.HashtagsProjection;
+import com.spring.api.API.models.DTOs.Posts.PostProjection;
 import com.spring.api.API.models.Posts;
 import com.spring.api.API.models.DTOs.Posts.PostResponse;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -131,4 +131,90 @@ public interface IPostsRepository extends JpaRepository<Posts, Long> {
            l.created_at
    """)
     List<PostResponse> findPostResponseByIdLikedPosts(@Param("user_id") Long user_id);
+
+    @Query(value = """
+        SELECT
+            p.id AS id,
+            p.description AS description,
+            p.picture AS picture,
+            p.datecreated AS datecreated,
+            u.username AS username,
+            COALESCE(l.like_count, 0) AS likes,
+            COALESCE(c.comments_count, 0) AS comments,
+            p.datecreated AT TIME ZONE 'UTC' AS datecreated        
+        FROM posts p
+        
+        JOIN profiles pf
+            ON pf.user_id = p.user_id
+        
+        JOIN users u
+            ON u.id = p.user_id
+        
+        LEFT JOIN follows f
+            ON f.followed_id = p.user_id
+           AND f.follower_id = :user_id
+        
+        JOIN post_hashtag ph
+            ON ph.post_id = p.id
+        
+        LEFT JOIN (
+            SELECT publication_id, COUNT(*) AS like_count
+            FROM likes
+            GROUP BY publication_id
+        ) l ON l.publication_id = p.id
+            
+        LEFT JOIN (
+            SELECT post_id, COUNT(*) AS comments_count
+            FROM comments
+            GROUP BY post_id
+        ) c ON c.post_id = p.id
+        
+        WHERE ph.hashtag_id = :hashtag_id
+        AND (
+            pf.private = false
+            OR f.follower_id IS NOT NULL
+        )
+        
+        ORDER BY likes DESC
+        LIMIT 10
+    """, nativeQuery = true)
+    List<PostProjection> mostPopularPostsByHashtag(
+            @Param("user_id") Long user_id,
+            @Param("hashtag_id") Long hashtagId
+    );
+
+    @Query(value = """        
+        SELECT DISTINCT
+            p.id,
+            p.description,
+            p.picture,
+        	u.username,
+        	COALESCE(lc.likes_count, 0) AS likes,
+        	COALESCE(c.comments_count,0) AS comments,
+            p.datecreated
+        FROM posts p
+        INNER JOIN likes l
+        	ON l.publication_id = p.id
+        INNER JOIN (
+        	SELECT f.followed_id as followed
+        	FROM follows f
+        	WHERE f.follower_id =:user_id 
+        ) fl ON fl.followed = l.user_id
+        INNER JOIN users u
+        	ON u.id = p.user_id
+        INNER JOIN (
+        	SELECT publication_id AS post_id, COUNT(*) AS likes_count
+        	FROM likes
+        	GROUP BY publication_id
+        ) lc ON lc.post_id = p.id
+        LEFT JOIN (
+        	SELECT post_id , COUNT(*) AS comments_count
+        	FROM comments
+        	GROUP BY post_id
+        ) c ON c.post_id = p.id
+        ORDER BY likes DESC
+        LIMIT 10
+    """, nativeQuery = true)
+    List<PostProjection> mostPopularPostLikedByFollowings(@Param("user_id") Long user_id);
+
 }

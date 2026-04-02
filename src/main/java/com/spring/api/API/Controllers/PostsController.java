@@ -14,54 +14,66 @@ import org.springframework.security.core.Authentication;
 @RestController
 @RequestMapping("/posts")
 public class PostsController {
-    
+
     private final PostsService service;
+
     public PostsController(PostsService service) {
         this.service = service;
     }
 
-    @PostMapping("/create")
-    public ResponseEntity<?> postMethodName(@Valid @RequestBody CreatePostDTO posts, @NonNull Authentication auth) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(this.service.create(posts, auth.getName()));
+    @PostMapping
+    public ResponseEntity<?> createPost(@Valid @RequestBody CreatePostDTO posts, Authentication auth) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.create(posts, auth.getName()));
     }
-    
+
     @GetMapping("/me")
-    public ResponseEntity<?> getMyPosts(@NonNull Authentication auth) {
-        return ResponseEntity.ok(this.service.getMyPosts(auth.getName()));
+    public ResponseEntity<?> getMyPosts(Authentication auth) {
+        return ResponseEntity.ok(service.getMyPosts(auth.getName()));
     }
 
     @GetMapping("/feed")
-    public ResponseEntity<?> getFeed(@NonNull Authentication auth) {
-        return ResponseEntity.ok(this.service.feed(auth.getName()));    
+    public ResponseEntity<?> getFeed(Authentication auth) {
+        return ResponseEntity.ok(service.feed(auth.getName()));
     }
 
-    @GetMapping("/")
-    public ResponseEntity<?> get_user_posts(@RequestParam("username") String username, @NonNull Authentication auth){
-        return ResponseEntity.ok(this.service.get_user_posts(username, auth.getName()));
+    @GetMapping
+    public ResponseEntity<?> getUserPosts(@RequestParam("username") String username, Authentication auth) {
+        return ResponseEntity.ok(service.getUserPosts(username, auth.getName()));
     }
 
-    @PostMapping("/like/{post_id}")
-    public ResponseEntity<?> likePost(@PathVariable long post_id, @NonNull Authentication auth) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(this.service.setLike(post_id, auth.getName()));
+    @PostMapping("/{postId}/like")
+    public ResponseEntity<?> likePost(@PathVariable long postId, Authentication auth) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.setLike(postId, auth.getName()));
     }
 
-    @PatchMapping("/{post_id}")
-    public ResponseEntity<?> updatePost(@Valid @PathVariable long post_id, @RequestBody() UpdatePostDTO data, @NonNull Authentication auth){
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(this.service.updatePost(data, post_id, auth.getName()));
+    @PatchMapping("/{postId}")
+    public ResponseEntity<?> updatePost(@PathVariable long postId, @Valid @RequestBody UpdatePostDTO data, Authentication auth) {
+        return ResponseEntity.ok(service.updatePost(data, postId, auth.getName()));
     }
 
-    @DeleteMapping("/{post_id}")
-    public ResponseEntity<?> deletePost(@PathVariable long post_id, @NonNull Authentication auth){
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(this.service.deletePost(post_id, auth.getName()));
+    @DeleteMapping("/{postId}")
+    public ResponseEntity<?> deletePost(@PathVariable long postId, Authentication auth) {
+        service.deletePost(postId, auth.getName());
+        return ResponseEntity.noContent().build();  // 204
     }
 
-    @GetMapping("{post_id}")
-    public ResponseEntity<?> findPostByIdEntity(@PathVariable long post_id, @NonNull Authentication auth) {
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(this.service.findPostById(post_id, auth.getName()));
+    @GetMapping("/{postId}")
+    public ResponseEntity<?> getPostById(@PathVariable long postId, Authentication auth) {
+        return ResponseEntity.ok(service.findPostById(postId, auth.getName()));
     }
 
-    @GetMapping("/{post_id}/hashtags")
-    public ResponseEntity<?> getPostsWithHashTags(@PathVariable("post_id") long post_id, Authentication auth){
-        return ResponseEntity.status(HttpStatus.OK).body(this.service.getPostsWithHashTags(post_id, auth.getName()));
+    @GetMapping("/{postId}/hashtags")
+    public ResponseEntity<?> getPostHashtags(@PathVariable long postId, Authentication auth) {
+        return ResponseEntity.ok(service.getPostsWithHashTags(postId, auth.getName()));
+    }
+
+    @GetMapping("/hashtags/{hashtag}/popular")
+    public ResponseEntity<?> getPopularPostsByHashtag(@PathVariable String hashtag, Authentication auth) {
+        return ResponseEntity.ok(service.mostPopularPostsByHashtag(hashtag, auth.getName()));
+    }
+
+    @GetMapping("/following/popular")
+    public ResponseEntity<?> getPopularPostsFromFollowing(Authentication auth) {
+        return ResponseEntity.ok(service.popularPostsLikedByFolloweds(auth.getName()));
     }
 }

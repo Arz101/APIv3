@@ -1,10 +1,15 @@
 package com.spring.api.API.models;
 
 import java.time.OffsetDateTime;
+import java.util.*;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
+@Getter
+@Setter
 @Entity
 @Table(
     name = "comments",
@@ -32,51 +37,22 @@ public class Comments {
     @Column(name = "datecreated")
     private OffsetDateTime dateCreated = OffsetDateTime.now();
 
+    @ManyToOne
+    @JoinColumn(name = "parent_id", nullable = true)
+    private Comments parent;
+
+    protected Comments(){}
+
     public Comments(Posts post, User user, String content) {
         this.post = post;
         this.user = user;
         this.content = content;
     }
 
-    protected Comments(){}
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Posts getPost() {
-        return post;
-    }
-
-    public void setPost(Posts post) {
+    public Comments(Posts post, User user, String content, Comments parent) {
         this.post = post;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
         this.user = user;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
         this.content = content;
-    }
-
-    public OffsetDateTime getDatecreated() {
-        return dateCreated;
-    }
-
-    public void setDatecreated(OffsetDateTime datecreated) {
-        this.dateCreated = datecreated;
+        this.parent = parent;
     }
 }
