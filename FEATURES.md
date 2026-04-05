@@ -5,9 +5,14 @@
 - ✅ Perfil privado
 - ✅ Visibilidad solo para seguidores
 - ✅ Comentarios solo si el posts es publico 
+- ✅ Endpoint para bloquear usuario
+- ✅ Endpoint para desbloquear usuario
+- ✅ Lista de usuarios bloqueados
+- ✅ Impedir que bloqueado vea posts privados
+- ✅ Eliminar o aceptar solicitudes de seguimiento
 
 ## Sistema de Feed
-- [ ] Crear Ranking - Feed
+- ✅ Crear Ranking - Feed
   - ✅ Agregar endpoints para traer posts de diferentes fuentes
   - ✅ Posts de personas que sigues
   - ✅ Posts populares de amigos que dieron like
@@ -31,54 +36,38 @@
 - ✅ Cargar arbol de herarquia de un post
 
 ## Sistema de Amigos
-- [ ] Recomendacion de personas que quizas conozcas basado en tus seguidores
-- [ ] Recomedaciones de seguidos por seguidores
-- [ ] Busqueda de Usernames similares
-- [ ] Grafo de amigos en profundidad
+- ✅ Recomedaciones de seguidos por seguidos
+- ✅ Busqueda de Usernames similares
+- ✅ Grafo de amigos en profundidad
 - [ ] Recomendacion de personas por peso de aristas
 
 ## Guardar Posts
-- [ ] Endpoint para guardar/favoritar posts
-- [ ] Endpoint para obtener posts guardados del usuario
-- [ ] Endpoint para eliminar post de guardados
-- [ ] Tabla de relación usuario-posts guardados
-- [ ] Validar que no se guarde el mismo post dos veces
+- ✅ Endpoint para guardar/favoritar posts
+- ✅ Endpoint para obtener posts guardados del usuario
+- ✅ Endpoint para eliminar post de guardados
+- ✅ Tabla de relación usuario-posts guardados
+- ✅ Validar que no se guarde el mismo post dos veces
 
 ## Compartir Posts
 - [ ] Endpoint para compartir posts
-- [ ] Registrar historia de compartidos
+- [ ] Endpoint para borrar post compartido
 
 ## Subida de Archivos
-- [ ] Endpoint para subir archivos/imágenes
-- [ ] Validar tipo y tamaño de archivo
-- [ ] Almacenar archivos en servidor/cloud
-- [ ] Asociar archivos a posts
-- [ ] Servir archivos descargables
-- [ ] Limitar tamaño máximo de carga
-- [ ] Limpiar archivos huérfanos (sin referencia)
+- ✅ Endpoint para subir archivos/imágenes
+- ✅ Validar tipo y tamaño de archivo
+- ✅ Asociar archivos a posts
+- ✅ Limitar tamaño máximo de carga
 
 ## Notificaciones en Tiempo Real
 - [ ] Configurar WebSocket para notificaciones
 - [ ] Notificar nuevo comentario en post
-- [ ] Notificar mención en comentario/post
 - [ ] Notificar nuevo seguidor
 - [ ] Notificar cuando alguien comparte tu post
 - [ ] Endpoint para obtener notificaciones
-- [ ] Marcar notificaciones como leídas
 
 ## Búsqueda y Descubrimiento
 - [ ] Buscar posts por texto/contenido
-- [ ] Buscar usuarios por nombre/username
-- [ ] Filtrar posts por categorías
-- [ ] Página de trending topics
 - [ ] Algoritmo de recomendaciones de posts
-- [ ] Recomendaciones de usuarios a seguir
-
-## Privacidad y Control
-- [ ] Endpoint para bloquear usuario
-- [ ] Endpoint para desbloquear usuario
-- [ ] Lista de usuarios bloqueados
-- [ ] Impedir que bloqueado vea posts privados
 
 ## Reportes y Moderación
 - [ ] Endpoint para reportar post

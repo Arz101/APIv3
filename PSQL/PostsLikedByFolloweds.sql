@@ -16,6 +16,7 @@ INNER JOIN (
 	SELECT f.followed_id as followed
 	FROM follows f
 	WHERE f.follower_id = 994 -- Current User ID LOGGED
+		AND f.status = 'active'
 ) fl ON fl.followed = l.user_id
 INNER JOIN users u 
 	ON u.id = p.user_id
@@ -30,4 +31,6 @@ LEFT JOIN (
 	GROUP BY post_id
 ) c ON c.post_id = p.id
 ORDER BY likes DESC
-LIMIT (10)
+LIMIT 10
+
+

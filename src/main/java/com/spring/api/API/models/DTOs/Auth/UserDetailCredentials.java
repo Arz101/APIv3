@@ -5,7 +5,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 public record UserDetailCredentials (
-    String username,
-    String password,
-    String status
+        Long userId,
+        String username,
+        String password,
+        String status
 ) {}

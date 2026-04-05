@@ -6,17 +6,18 @@ import java.util.stream.Collectors;
 import com.spring.api.API.Repositories.*;
 import com.spring.api.API.models.*;
 import com.spring.api.API.models.DTOs.Posts.*;
+import com.spring.api.API.models.PostsSaved.PostsSaved;
 import com.spring.api.API.security.Exceptions.PostsActionsUnauthorized;
 import com.spring.api.API.security.Exceptions.ProfilePrivateException;
 import org.jspecify.annotations.NonNull;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import com.spring.api.API.security.Exceptions.PostNotFoundException;
 import com.spring.api.API.security.Exceptions.UserNotFoundException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class PostsService {
@@ -27,15 +28,20 @@ public class PostsService {
     private final IPostViewedRepository postViewedRepository;
     private final IProfileRepository profileRepository;
     private final IHashTagsRepository hashTagsRepository;
-    private static final Logger log = LoggerFactory.getLogger(PostsService.class);
+    private final StorageService storage;
+    private final RankingService rankingService;
+    private final IPostsSavedRepository postsSavedRepository;
 
     public PostsService(IPostsRepository repository,
-        ILikeRepository likeRepository,
-        IFollowsRepository followsRepository,
-        IUserRepository userRepository,
-        IPostViewedRepository postViewedRepository,
-        IProfileRepository profileRepository,
-        IHashTagsRepository hashTagsRepository
+                        ILikeRepository likeRepository,
+                        IFollowsRepository followsRepository,
+                        IUserRepository userRepository,
+                        IPostViewedRepository postViewedRepository,
+                        IProfileRepository profileRepository,
+                        IHashTagsRepository hashTagsRepository,
+                        StorageService storage,
+                        RankingService rankingService,
+                        IPostsSavedRepository postsSavedRepository
     ) {
         this.repository = repository;
         this.likeRepository = likeRepository;
@@ -44,6 +50,9 @@ public class PostsService {
         this.postViewedRepository = postViewedRepository;
         this.profileRepository = profileRepository;
         this.hashTagsRepository = hashTagsRepository;
+        this.storage = storage;
+        this.rankingService = rankingService;
+        this.postsSavedRepository = postsSavedRepository;
     }
 
     @Transactional
@@ -51,15 +60,13 @@ public class PostsService {
         var user_id = this.userRepository.getIdByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        dto.hashtags().stream().map(h -> {
-            String normalized = h.toLowerCase()
-                    .replaceAll("[áàäâ]", "a")
-                    .replaceAll("[éèëê]", "e")
-                    .replaceAll("[íìïî]", "i")
-                    .replaceAll("[óòöô]", "o")
-                    .replaceAll("[úùüû]", "u");
-            return normalized;
-        }).collect(Collectors.toSet());
+        dto.hashtags().stream().map(h -> h.toLowerCase()
+                .replaceAll("[áàäâ]", "a")
+                .replaceAll("[éèëê]", "e")
+                .replaceAll("[íìïî]", "i")
+                .replaceAll("[óòöô]", "o")
+                .replaceAll("[úùüû]", "u")).
+                collect(Collectors.toSet());
 
         Set<Hashtags> hashtags = new HashSet<>();
         if(!dto.hashtags().isEmpty()){
@@ -89,6 +96,17 @@ public class PostsService {
         );
     }
 
+    public void attachImage(Long postId, MultipartFile file, @NonNull UserDetails user){
+        var post = this.repository.getReferenceById(postId);
+
+        if(!post.getUser().getUsername().equals(user.getUsername())){
+            throw new PostsActionsUnauthorized("Unauthorized");
+        }
+        String filename = this.storage.save(file);
+        post.setPicture(filename);
+        this.repository.save(post);
+    }
+
     @Transactional(readOnly = true)
     public List<PostResponseWithHashtags> getMyPosts(String username) {
         var user_id = this.userRepository.getIdByUsername(username)
@@ -105,7 +123,7 @@ public class PostsService {
     }
 
     @Transactional(readOnly = true)
-    public List<?> feed(String username) {
+    public List<?> timeLine(String username) {
         var userIds = this.followsRepository.findFollowedUserIdsByFollowerUsername(username);
         Pageable pageable = PageRequest.of(0, 50);
 
@@ -118,14 +136,19 @@ public class PostsService {
                         Collectors.mapping(HashtagsDTO::name, Collectors.toSet())
                 ));
 
-        var full_posts = posts.stream().map(post -> {
+        return posts.stream().map(post -> {
             var hashes = hashtags_mapped.getOrDefault(post.id(), Set.of());
             return new PostResponseWithHashtags(
                     post, hashes
             );
 
         }).collect(Collectors.toList());
-        return full_posts;
+    }
+
+    public List<?> feed (@NonNull UserDetails user){
+        var userId = this.userRepository.getIdByUsername(user.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        return this.rankingService.posts(userId);
     }
 
     @Transactional
@@ -164,6 +187,64 @@ public class PostsService {
     }
 
     @Transactional
+    public void unlike(Long postId, String username){
+        var currentUser = this.userRepository.getIdByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException(""));
+        var view = this.postViewedRepository.postView(currentUser, postId);
+        view.setLikes(false);
+        this.likeRepository.deleteByPostIdAndUserId(postId, currentUser);
+    }
+
+    @Transactional
+    public Map savePosts(Long postId, @NonNull UserDetails user){
+        var userId = this.userRepository.getIdByUsername(user.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("Not found"));
+
+        var post = this.repository.getReferenceById(postId);
+        var postsOwnerId = post.getUser().getId();
+
+        if (this.profileRepository.isPrivate(postsOwnerId)) {
+            if (!this.followsRepository.existsFollow(postsOwnerId, userId)) {
+                throw new ProfilePrivateException("This account is private");
+            }
+        }
+
+        this.postsSavedRepository.save(new PostsSaved(userId, postId));
+
+        if(this.postViewedRepository.alreadyViewed(userId, postId)){
+            var pv = this.postViewedRepository.postView(userId, postId);
+            pv.setSave(true);
+            this.postViewedRepository.save(pv);
+        }
+        return Map.of("message", "Post Saved Successfully!");
+    }
+
+    @Transactional
+    public void unsavePosts(Long postId, @NonNull UserDetails user){
+        var userId = this.userRepository.getIdByUsername(user.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("Not found"));
+
+        var post = this.postsSavedRepository.postsSavedByUserIdAndPostsId(userId, postId)
+                .orElseThrow(() -> new PostNotFoundException("Something went wrong"));
+
+        var pv = this.postViewedRepository.postView(userId, postId);
+        pv.setSave(false);
+        this.postViewedRepository.save(pv);
+        this.postsSavedRepository.delete(post);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostResponseWithHashtags> savedPostsList(@NonNull UserDetails user){
+        var userId = this.userRepository.getIdByUsername(user.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("Not found"));
+
+        var postsIds = this.postsSavedRepository.postsSavedIds(userId);
+        var posts = this.repository.getPostsResponseByIdList(postsIds);
+
+        return this.transformPostResponse(posts);
+    }
+
+    @Transactional
     public PostResponse updatePost(@NonNull UpdatePostDTO data, Long post_id, String username){
         Long user_id = this.userRepository.getIdByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("Not found"));
@@ -179,22 +260,15 @@ public class PostsService {
     }
 
     @Transactional
-    public String deletePost(Long post_id, String username){
+    public void deletePost(Long post_id, String username){
         Long user_id = this.userRepository.getIdByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("Not found"));
 
         Posts post = this.repository.findPostByUserAndPostId(user_id, post_id)
             .orElseThrow(() -> new PostsActionsUnauthorized("Unauthorized Action"));
-        
-        try{
-            this.likeRepository.deleteByPostId(post_id);
 
-            this.repository.delete(post);
-            return "Successfully!";
-        }
-        catch(RuntimeException e){
-            return "Something went wrong!";
-        }
+        this.likeRepository.deleteAllLikeByPostId(post_id);
+        this.repository.delete(post);
     }
 
     @Transactional(readOnly = true)
@@ -239,7 +313,7 @@ public class PostsService {
         var hashtag_id = this.hashTagsRepository.getIdByName(hashtag)
                 .orElseThrow(() -> new RuntimeException("Hashtags not exists or not found"));
 
-        var popular_posts = this.repository.mostPopularPostsByHashtag(user_id, hashtag_id);
+        var popular_posts = this.repository.mostPopularPostsByHashtags(user_id, List.of(hashtag_id));
 
         var posts_response = popular_posts.stream()
                 .map(post -> new PostResponse(
@@ -285,11 +359,7 @@ public class PostsService {
                 .orElseThrow(() -> new UserNotFoundException("Something went wrong!"));
 
         if (this.profileRepository.isPrivate(targetUser.getId())) {
-            boolean isFollowing = targetUser.getFollowers()
-                    .stream()
-                    .anyMatch(t -> t.getFollower().getId().equals(user_id));
-
-            if (!isFollowing) {
+            if (!this.followsRepository.existsFollow(targetUser.getId(), user_id)) {
                 throw new ProfilePrivateException("This account is private");
             }
         }
@@ -299,7 +369,7 @@ public class PostsService {
     @Transactional(readOnly = true) // Transform PostResponse for add Hashtags
     private List<PostResponseWithHashtags> transformPostResponse(@NonNull List<PostResponse> posts){
         var getPostsIds = posts.stream()
-                .map(post -> post.id())
+                .map(PostResponse::id)
                 .collect(Collectors.toList());
 
         var hashtags = this.hashTagsRepository.getHashtagsByPostIdList(getPostsIds);
@@ -310,14 +380,12 @@ public class PostsService {
                         Collectors.mapping(HashtagsDTO::name, Collectors.toSet())
                 ));
 
-        var full_posts = posts.stream().map(post -> {
+        return posts.stream().map(post -> {
             var hashes = hashtags_mapped.getOrDefault(post.id(), Set.of());
             return new PostResponseWithHashtags(
                     post, hashes
             );
 
         }).collect(Collectors.toList());
-        return full_posts;
     }
-
 }

@@ -44,4 +44,7 @@ public interface IProfileRepository extends JpaRepository<Profiles, Long> {
         WHERE u.id =:user_id
     """)
     ProfileStats getProfileStats(@Param("user_id") Long user_id);
+
+    @Query("SELECT p FROM Profiles p WHERE p.user.username =:username")
+    Optional<Profiles> findProfileByUsername(@Param("username") String username);
 }

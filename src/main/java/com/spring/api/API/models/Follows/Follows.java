@@ -1,5 +1,6 @@
-package com.spring.api.API.models;
+package com.spring.api.API.models.Follows;
 
+import com.spring.api.API.models.User;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

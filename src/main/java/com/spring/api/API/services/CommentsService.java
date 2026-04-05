@@ -27,7 +27,6 @@ public class CommentsService {
     private final IPostsRepository postsRepository;
     private final IPostViewedRepository postViewedRepository;
 
-
     public CommentsService(
         ICommentsRepository repository,
         IUserRepository userRepository,

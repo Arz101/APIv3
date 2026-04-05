@@ -1,7 +1,5 @@
 package com.spring.api.API.Repositories;
 
-import java.util.Optional;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.Modifying;
@@ -23,7 +21,12 @@ public interface ILikeRepository extends JpaRepository<Likes, Long> {
     @Modifying
     @Query("""
         DELETE FROM Likes l
-        WHERE l.post.id =:post_id        
+        WHERE l.post.id =:postId AND l.user.id =:userId     
     """)
-    void deleteByPostId(Long post_id);
+    void deleteByPostIdAndUserId(@Param("postId") Long postId, @Param("userId") Long userId);
+
+    @Modifying
+    @Query("DELETE FROM Likes l WHERE l.post.id =:postId")
+    void deleteAllLikeByPostId(@Param("postId") Long postId);
+
 }

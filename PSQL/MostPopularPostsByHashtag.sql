@@ -19,8 +19,8 @@ JOIN users u
 
 LEFT JOIN follows f 
     ON f.followed_id = p.user_id 
-   AND f.follower_id = 994  --- CURRENT USER LOGGED
-
+   		AND f.follower_id = 994  --- CURRENT USER LOGGED
+   		AND f.status = 'active'
 JOIN post_hashtag ph 
     ON ph.post_id = p.id
 
@@ -87,5 +87,4 @@ AND (
 )
 ORDER BY likes DESC
 LIMIT 10;
-
 

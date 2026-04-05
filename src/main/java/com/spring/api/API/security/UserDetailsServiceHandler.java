@@ -3,6 +3,7 @@ package com.spring.api.API.security;
 import com.spring.api.API.Repositories.IUserRepository;
 import com.spring.api.API.models.DTOs.Auth.UserDetailCredentials;
 import com.spring.api.API.security.Exceptions.AccountException;
+import com.spring.api.API.services.RankingService;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -13,9 +14,12 @@ import java.util.ArrayList;
 public class UserDetailsServiceHandler implements UserDetailsService {
 
     private final IUserRepository repository;
+    private final RankingService service;
 
-    public UserDetailsServiceHandler(IUserRepository repository){
+    public UserDetailsServiceHandler(IUserRepository repository,
+                                     RankingService service){
         this.repository = repository;
+        this.service = service;
     }
 
     @Override
@@ -25,7 +29,7 @@ public class UserDetailsServiceHandler implements UserDetailsService {
 
         if (!user.status().equals("active"))
             throw new AccountException("Account is not active, check your email for confirmation");
-        
+
         return new org.springframework.security.core.userdetails.User(
                 user.username(),
                 user.password(),

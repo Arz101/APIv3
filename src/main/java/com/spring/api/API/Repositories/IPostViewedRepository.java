@@ -13,4 +13,7 @@ public interface IPostViewedRepository extends JpaRepository<PostViewed, Long>{
         WHERE pv.user.id =:user_id AND pv.post.id =:post_id
     """)
     Boolean alreadyViewed(@Param("user_id") Long user_id, @Param("post_id") Long post_id);
+
+    @Query("SELECT pv FROM PostViewed pv WHERE pv.user.id =:userId AND pv.post.id =:postId")
+    PostViewed postView(@Param("userId") Long userId, @Param("postId") Long postId);
 }

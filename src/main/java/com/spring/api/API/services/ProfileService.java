@@ -1,6 +1,5 @@
 package com.spring.api.API.services;
 
-import com.spring.api.API.Repositories.IFollowsRepository;
 import com.spring.api.API.Repositories.IPostsRepository;
 import com.spring.api.API.Repositories.IProfileRepository;
 import com.spring.api.API.Repositories.IUserRepository;
@@ -8,18 +7,17 @@ import com.spring.api.API.models.DTOs.Posts.PostResponse;
 import com.spring.api.API.models.DTOs.Profile.CreateProfileDTO;
 import com.spring.api.API.models.DTOs.Profile.ProfileResponseDTO;
 import com.spring.api.API.models.DTOs.Profile.ProfileStats;
-import com.spring.api.API.models.Follows;
+import com.spring.api.API.models.DTOs.Profile.ProfileUpdate;
 import com.spring.api.API.models.Profiles;
 import com.spring.api.API.models.User;
 import com.spring.api.API.security.Exceptions.ProfilePrivateException;
 import com.spring.api.API.security.Exceptions.UserNotFoundException;
+import org.jspecify.annotations.NonNull;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class ProfileService {
@@ -27,15 +25,18 @@ public class ProfileService {
     private final IProfileRepository repository;
     private final IUserRepository userRepository;
     private final IPostsRepository postsRepository;
+    private final StorageService storage;
 
-    public ProfileService(
-            IProfileRepository repository,
-            IUserRepository userRepository,
-            IPostsRepository postsRepository
+    public ProfileService(IProfileRepository repository,
+                          IUserRepository userRepository,
+                          IPostsRepository postsRepository,
+                          StorageService storage
     ){
         this.repository = repository;
         this.userRepository = userRepository;
         this.postsRepository = postsRepository;
+        this.storage = storage;
+
     }
 
     @Transactional
@@ -62,7 +63,7 @@ public class ProfileService {
     }
 
     @Transactional(readOnly = true)
-    public ProfileResponseDTO my_profile(String username){
+    public ProfileResponseDTO myProfile(String username){
         Long user_id = this.userRepository.getIdByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
@@ -70,7 +71,7 @@ public class ProfileService {
     }
 
     @Transactional(readOnly = true)
-    public ProfileResponseDTO search_profile(String target, String currentUser){
+    public ProfileResponseDTO searchProfile(String target, String currentUser){
         User targetUser = this.userRepository.findByUsername(target)
                 .orElseThrow();
 
@@ -91,7 +92,7 @@ public class ProfileService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostResponse> search_profile_posts(String target, String username){
+    public List<PostResponse> searchProfilePosts(String target, String username){
         Long targetUser_id = this.userRepository.getIdByUsername(target)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
@@ -114,7 +115,7 @@ public class ProfileService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostResponse> search_profile_posts_liked(String target, String username){
+    public List<PostResponse> searchProfilePostsLiked(String target, String username){
         Long targetUser_id = this.userRepository.getIdByUsername(target)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
@@ -156,5 +157,46 @@ public class ProfileService {
             }
         }
         return this.repository.getProfileStats(targetUser_id);
+    }
+
+    @Transactional
+    public ProfileResponseDTO updateProfile(@NonNull ProfileUpdate data, String username){
+        var profile = this.repository.findProfileByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("Not found"));
+
+        if(data.name() != null)
+            profile.setName(data.name());
+        if (data.lastname() != null)
+            profile.setLastname(data.lastname());
+        if (data.birthday() != null)
+            profile.setBirthday(data.birthday());
+        if (data.phone() != null)
+            profile.setPhone(data.phone());
+        if (data.bio() != null)
+            profile.setBio(data.bio());
+        if (data.private_() != null)
+            profile.setPrivateField(data.private_());
+
+        profile = this.repository.save(profile);
+        return new ProfileResponseDTO(
+                profile.getProfile_id(),
+                profile.getName(),
+                profile.getLastname(),
+                profile.getBirthday(),
+                profile.getAvatar_url(),
+                profile.getBio(),
+                profile.getPrivateField()
+        );
+    }
+
+    @Transactional
+    public void storeProfileAvatar(MultipartFile file, String username){
+        String filename = this.storage.save(file);
+
+        var profile = this.repository.findProfileByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("Not found"));
+        profile.setAvatar_url(filename);
+        this.repository.save(profile);
+
     }
 }

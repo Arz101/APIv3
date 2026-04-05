@@ -1,6 +1,7 @@
 package com.spring.api.API.Controllers;
 
 import com.spring.api.API.models.DTOs.Profile.CreateProfileDTO;
+import com.spring.api.API.models.DTOs.Profile.ProfileUpdate;
 import com.spring.api.API.services.ProfileService;
 import jakarta.validation.Valid;
 import org.jspecify.annotations.NonNull;
@@ -8,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("profiles")
@@ -25,27 +27,38 @@ public class ProfileController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<?> get_my_profile(@NonNull Authentication authentication){
-        return ResponseEntity.status(HttpStatus.OK).body(this.service.my_profile(authentication.getName()));
+    public ResponseEntity<?> getMyProfile(@NonNull Authentication authentication){
+        return ResponseEntity.status(HttpStatus.OK).body(this.service.myProfile(authentication.getName()));
     }
 
     @GetMapping("/search")
-    public ResponseEntity<?> search_profile(@RequestParam() String username, @NonNull Authentication auth){
-        return ResponseEntity.status(HttpStatus.OK).body(this.service.search_profile(username, auth.getName()));
+    public ResponseEntity<?> searchProfile(@RequestParam() String username, @NonNull Authentication auth){
+        return ResponseEntity.status(HttpStatus.OK).body(this.service.searchProfile(username, auth.getName()));
+    }
+
+    @PutMapping("/")
+    public ResponseEntity<?> updateProfile(@Valid @RequestBody() ProfileUpdate data, Authentication auth){
+        return ResponseEntity.ok(this.service.updateProfile(data, auth.getName()));
     }
 
     @GetMapping("/{username}/posts")
-    public ResponseEntity <?> search_profile_posts(@PathVariable("username") String username, @NonNull Authentication auth){
-        return ResponseEntity.status(HttpStatus.OK).body(this.service.search_profile_posts(username, auth.getName()));
+    public ResponseEntity <?> searchProfilePosts(@PathVariable("username") String username, @NonNull Authentication auth){
+        return ResponseEntity.status(HttpStatus.OK).body(this.service.searchProfilePosts(username, auth.getName()));
     }
 
     @GetMapping("/{username}/likes")
-    public ResponseEntity <?> search_profile_posts_liked(@PathVariable("username") String username, @NonNull Authentication auth){
-        return ResponseEntity.status(HttpStatus.OK).body(this.service.search_profile_posts_liked(username, auth.getName()));
+    public ResponseEntity <?> searchProfilePostsLiked(@PathVariable("username") String username, @NonNull Authentication auth){
+        return ResponseEntity.status(HttpStatus.OK).body(this.service.searchProfilePostsLiked(username, auth.getName()));
     }
 
     @GetMapping("/{username}/stats")
-    public ResponseEntity<?> get_profile_stats(@PathVariable("username") String username, @NonNull Authentication auth){
+    public ResponseEntity<?> getProfileStats(@PathVariable("username") String username, @NonNull Authentication auth){
         return ResponseEntity.status(HttpStatus.OK).body(this.service.get_profile_stats(username, auth.getName()));
+    }
+
+    @PostMapping("/upload-avatar")
+    public ResponseEntity<?> uploadProfilePhoto(@RequestParam("file") MultipartFile file, @NonNull Authentication auth){
+        this.service.storeProfileAvatar(file, auth.getName());
+        return ResponseEntity.ok().build();
     }
 }

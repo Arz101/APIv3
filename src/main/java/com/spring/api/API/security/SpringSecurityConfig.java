@@ -1,6 +1,8 @@
 package com.spring.api.API.security;
 
 import java.util.List;
+
+import org.jspecify.annotations.NonNull;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -35,7 +37,7 @@ public class SpringSecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(@NonNull HttpSecurity http) throws Exception {
 
         http.authorizeHttpRequests(auth -> auth
             .requestMatchers(HttpMethod.GET, "/", "/index.html").permitAll()
@@ -62,7 +64,7 @@ public class SpringSecurityConfig {
 
     @Bean
     public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration config) throws Exception {
+            @NonNull AuthenticationConfiguration config) throws Exception {
 
         return config.getAuthenticationManager();
     }

@@ -67,5 +67,5 @@ public interface IHashTagsRepository extends JpaRepository<Hashtags, Long> {
         ORDER BY  COUNT(*) DESC
         LIMIT 5
     """, nativeQuery = true)
-    HashtagsProjection getPrincipalInterestsBasedOnHashtags(@Param("user_id") Long user_id);
+    List<HashtagsProjection> getPrincipalInterestsBasedOnHashtags(@Param("user_id") Long user_id);
 }

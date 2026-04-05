@@ -1,11 +1,14 @@
 package com.spring.api.API.Repositories;
 
 import com.spring.api.API.models.DTOs.Auth.UserDetailCredentials;
+import com.spring.api.API.models.DTOs.User.UserFound;
 import com.spring.api.API.models.User;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface IUserRepository extends JpaRepository<User, Long> {
@@ -23,6 +26,7 @@ public interface IUserRepository extends JpaRepository<User, Long> {
 
     @Query("""
         SELECT new com.spring.api.API.models.DTOs.Auth.UserDetailCredentials(
+            u.id,
             u.username,
             u.password,
             u.status
@@ -31,4 +35,20 @@ public interface IUserRepository extends JpaRepository<User, Long> {
         WHERE u.username =:username
     """)
     Optional<UserDetailCredentials> getCredentials(@Param("username") String username);
+
+    @EntityGraph(attributePaths = {"following", "followers"})
+    @Query("SELECT u FROM User u WHERE u.id =:id")
+    User findByIdWithGraph(Long id);
+
+    @Query("""
+        SELECT new com.spring.api.API.models.DTOs.User.UserFound(
+            u.id,
+            u.username,
+            p.avatar_url
+        )
+        FROM User u
+        INNER JOIN Profiles p ON u.id = p.user.id
+        WHERE u.username LIKE LOWER(CONCAT(:text, '%'))
+    """)
+    List<UserFound> usersFoundByText(@Param("text") String text);
 }

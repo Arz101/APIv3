@@ -1,6 +1,5 @@
 package com.spring.api.API.Repositories;
 
-import com.spring.api.API.models.DTOs.Posts.HashtagsProjection;
 import com.spring.api.API.models.DTOs.Posts.PostProjection;
 import com.spring.api.API.models.Posts;
 import com.spring.api.API.models.DTOs.Posts.PostResponse;
@@ -13,6 +12,29 @@ import org.springframework.data.repository.query.Param;
 
 public interface IPostsRepository extends JpaRepository<Posts, Long> {
     Optional<Posts> findById(long id);
+
+    @Query("""
+        SELECT new com.spring.api.API.models.DTOs.Posts.PostResponse(
+            p.id,
+            p.description,
+            p.picture,
+            p.user.username,
+            COUNT(l.id),
+            COUNT(c.id),
+            p.datecreated
+        )
+        FROM Posts p
+        LEFT JOIN Likes l ON l.post = p
+        LEFT JOIN Comments c ON c.post = p
+        WHERE p.id IN :postsId
+        GROUP BY 
+            p.id,
+            p.description,
+            p.picture,
+            p.user.username,
+            p.datecreated
+    """)
+    List<PostResponse> getPostsResponseByIdList(@Param("postsId") List<Long> postsId);
 
     @Query("""
         SELECT p 
@@ -152,8 +174,9 @@ public interface IPostsRepository extends JpaRepository<Posts, Long> {
         
         LEFT JOIN follows f
             ON f.followed_id = p.user_id
-           AND f.follower_id = :user_id
-        
+            AND f.follower_id = :userId
+            AND f.status = 'active'
+                
         JOIN post_hashtag ph
             ON ph.post_id = p.id
         
@@ -169,7 +192,7 @@ public interface IPostsRepository extends JpaRepository<Posts, Long> {
             GROUP BY post_id
         ) c ON c.post_id = p.id
         
-        WHERE ph.hashtag_id = :hashtag_id
+        WHERE ph.hashtag_id IN :hashtagsIds
         AND (
             pf.private = false
             OR f.follower_id IS NOT NULL
@@ -178,9 +201,9 @@ public interface IPostsRepository extends JpaRepository<Posts, Long> {
         ORDER BY likes DESC
         LIMIT 10
     """, nativeQuery = true)
-    List<PostProjection> mostPopularPostsByHashtag(
-            @Param("user_id") Long user_id,
-            @Param("hashtag_id") Long hashtagId
+    List<PostProjection> mostPopularPostsByHashtags(
+            @Param("userId") Long userId,
+            @Param("hashtagsIds") List<Long> hashtagsIds
     );
 
     @Query(value = """        
@@ -199,6 +222,7 @@ public interface IPostsRepository extends JpaRepository<Posts, Long> {
         	SELECT f.followed_id as followed
         	FROM follows f
         	WHERE f.follower_id =:user_id 
+            	AND f.status = 'active'
         ) fl ON fl.followed = l.user_id
         INNER JOIN users u
         	ON u.id = p.user_id
@@ -216,5 +240,4 @@ public interface IPostsRepository extends JpaRepository<Posts, Long> {
         LIMIT 10
     """, nativeQuery = true)
     List<PostProjection> mostPopularPostLikedByFollowings(@Param("user_id") Long user_id);
-
 }

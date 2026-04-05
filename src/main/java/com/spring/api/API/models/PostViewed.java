@@ -31,6 +31,15 @@ public class PostViewed {
     @Column(name = "datecreated")
     private OffsetDateTime dateCreated = OffsetDateTime.now();
 
+    @Column(name = "likes")
+    private Boolean likes;
+
+    @Column(name = "comments")
+    private Boolean comments;
+
+    @Column(name = "save")
+    private Boolean save;
+
     public PostViewed(Posts post, User user) {
         this.post = post;
         this.user = user;

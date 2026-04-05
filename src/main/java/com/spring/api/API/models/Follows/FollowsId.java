@@ -1,4 +1,4 @@
-package com.spring.api.API.models;
+package com.spring.api.API.models.Follows;
 
 import jakarta.persistence.*;
 import lombok.Getter;
