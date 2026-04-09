@@ -38,8 +38,26 @@
 ## Sistema de Amigos
 - ✅ Recomedaciones de seguidos por seguidos
 - ✅ Busqueda de Usernames similares
-- ✅ Grafo de amigos en profundidad
-- [ ] Recomendacion de personas por peso de aristas
+- ✅ Grafo de follows en profundidad
+
+## Motor de Recomendaciones
+- ✅ Grafo de hashtags co-ocurrentes (hashtagGraph)
+- ✅ Posts indexados por tag, usuario y likes en memoria
+- ✅ Hashtags con mayor afinidad por usuario (tagsLikedByUser)
+- ✅ Feed basado en hashtags co-ocurrentes (createFeed)
+- ✅ Scoring de posts: rankPosts() - combinar likes sociales + afinidad de hashtags + popularidad
+- ✅ Incorporar followsGraph al feed (posts que gustaron a personas que sigo)
+- [ ] Filtrado colaborativo: usuarios con gustos similares likearon X
+- ✅ Excluir posts ya vistos del feed (usar PostViewed)
+- [ ] Recomendacion de personas por peso de aristas en followsGraph
+
+## Cache y Actualizacion en Tiempo Real
+- ✅ Cache de feed por usuario (Caffeine)
+- [ ] Invalidar/actualizar cache al crear un nuevo post
+- [ ] Actualizar SocialDataStore en memoria al registrar un nuevo like
+- [ ] Actualizar SocialDataStore en memoria al registrar un nuevo follow
+- [ ] Actualizar SocialDataStore en memoria al crear un post
+- [ ] Registrar vistas de posts y alimentar el motor de recomendaciones
 
 ## Guardar Posts
 - ✅ Endpoint para guardar/favoritar posts
@@ -64,10 +82,6 @@
 - [ ] Notificar nuevo seguidor
 - [ ] Notificar cuando alguien comparte tu post
 - [ ] Endpoint para obtener notificaciones
-
-## Búsqueda y Descubrimiento
-- [ ] Buscar posts por texto/contenido
-- [ ] Algoritmo de recomendaciones de posts
 
 ## Reportes y Moderación
 - [ ] Endpoint para reportar post

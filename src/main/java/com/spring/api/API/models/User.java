@@ -1,7 +1,6 @@
 package com.spring.api.API.models;
 
 import com.spring.api.API.models.Follows.Follows;
-import com.spring.api.API.models.PostsSaved.PostsSaved;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -54,7 +53,7 @@ public class User {
     @OneToMany(mappedBy = "followed", fetch = FetchType.LAZY)
     private List<Follows> following = new ArrayList<>();
 
-    protected User(){}
+    public User(){}
     public User(String username, String email, String password, String status){
         this.username = username;
         this.email = email;

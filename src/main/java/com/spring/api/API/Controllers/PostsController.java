@@ -14,7 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/posts")
+@RequestMapping("posts")
 public class PostsController {
 
     private final PostsService service;
@@ -49,7 +49,7 @@ public class PostsController {
     @GetMapping("/feed")
     public ResponseEntity<?> getFeed(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "30") int size,
             @AuthenticationPrincipal UserDetails user) {
         return ResponseEntity.ok(this.service.feed(user, page, size));
     }
@@ -58,37 +58,6 @@ public class PostsController {
     public ResponseEntity<?> userPosts(@RequestParam("username") String username,
                                        @AuthenticationPrincipal @NonNull UserDetails user) {
         return ResponseEntity.ok(service.getUserPosts(username, user.getUsername()));
-    }
-
-    @PostMapping("/{postId}/like")
-    public ResponseEntity<?> likePost(@PathVariable long postId,
-                                      @AuthenticationPrincipal @NonNull UserDetails user) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.setLike(postId, user.getUsername()));
-    }
-
-    @DeleteMapping("/{postId}/unlike")
-    public ResponseEntity<?> unlikePost(@PathVariable long postId,
-                                        @AuthenticationPrincipal @NonNull UserDetails user) {
-        this.service.unlike(postId, user.getUsername());
-        return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/{postId}/save")
-    public ResponseEntity<?> savePosts(@PathVariable long postId,
-                                       @AuthenticationPrincipal UserDetails user){
-        return ResponseEntity.ok(this.service.savePosts(postId, user));
-    }
-
-    @DeleteMapping("/{postId}/unsave")
-    public ResponseEntity<?> unsavePosts(@PathVariable long postId,
-                                         @AuthenticationPrincipal UserDetails user) {
-        this.service.unsavePosts(postId, user);
-        return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/saved")
-    public ResponseEntity<?> savedPostsList(@AuthenticationPrincipal UserDetails user){
-        return ResponseEntity.ok(this.service.savedPostsList(user));
     }
 
     @PatchMapping("/{postId}")
@@ -128,15 +97,9 @@ public class PostsController {
         return ResponseEntity.ok(service.popularPostsLikedByFolloweds(user.getUsername()));
     }
 
-    @GetMapping("/hashtags/{name}/related")
-    public ResponseEntity<?> getOccurrencesByHashtag(@PathVariable("name") String name,
-                                                     @AuthenticationPrincipal UserDetails user){
-        return ResponseEntity.ok(service.getMostHashOccurrencesByHash(name));
-    }
-
-    @GetMapping("/hashtags/liked")
-    public ResponseEntity<?> getTagsLikedByUser(@AuthenticationPrincipal UserDetails user){
-        return ResponseEntity.ok(this.service.tagsLikedByUser(user));
+    @GetMapping("/test/ranking")
+    public ResponseEntity<?> testsRanking(@AuthenticationPrincipal UserDetails user) {
+        return ResponseEntity.ok(this.service.testRanking(user));
     }
 
 }

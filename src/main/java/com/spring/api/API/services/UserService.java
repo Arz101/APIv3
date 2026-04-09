@@ -26,22 +26,19 @@ public class UserService {
     private final TokenService tokenService;
     private final IBlockedUsersRepository blockedUsersRepository;
     private final IFollowsRepository followsRepository;
-    private final SocialRecommendationService graph;
 
     public UserService(IUserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        EmailService emailService,
                        TokenService tokenService,
                        IBlockedUsersRepository blockedUsersRepository,
-                       IFollowsRepository followsRepository,
-                       SocialRecommendationService graph){
+                       IFollowsRepository followsRepository){
         this.repository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.tokenService = tokenService;
         this.blockedUsersRepository = blockedUsersRepository;
         this.followsRepository = followsRepository;
-        this.graph = graph;
     }
 
     @Transactional
@@ -52,26 +49,26 @@ public class UserService {
 
         String encodedPassword = this.passwordEncoder.encode(user.password());
 
-        User new_user = repository.saveAndFlush(new User(
+        User newUser = repository.saveAndFlush(new User(
                 user.username().toLowerCase(),
                 user.email(),
                 encodedPassword,
                 user.status()
         ));
 
-        String token = this.tokenService.saveAccountTokens(new_user);
+        String token = this.tokenService.saveAccountTokens(newUser);
 
         try {
-            //this.emailService.sendHTMLEmail(new_user.getEmail(), "Confirm your account", token);
+            //this.emailService.sendHTMLEmail(newUser.getEmail(), "Confirm your account", token);
         } catch (Exception e) {
             throw new EmailException("Failed to send confirmation email: " + e.getMessage());
         }
 
         return new UserResponseDTO(
-                new_user.getId(),
-                new_user.getUsername(),
-                new_user.getEmail(),
-                new_user.getStatus()
+                newUser.getId(),
+                newUser.getUsername(),
+                newUser.getEmail(),
+                newUser.getStatus()
         );
     }
 
@@ -100,17 +97,17 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponseDTO updateUser(@NonNull UpdateUserDTO new_data, String username){
+    public UserResponseDTO updateUser(@NonNull UpdateUserDTO newData, String username){
         User curr = this.repository.findByUsername(username)
             .orElseThrow(() -> new UserNotFoundException("Something went wrong"));
         
-        if (this.repository.existsByUsername(new_data.username())){
+        if (this.repository.existsByUsername(newData.username())){
             throw new UserAlreadyExistsException("Username already in use");
         }
 
-        curr.setUsername(new_data.username());
-        if (this.passwordEncoder.matches(new_data.password(), curr.getPassword())){
-            curr.setPassword(this.passwordEncoder.encode((new_data.new_password())));
+        curr.setUsername(newData.username());
+        if (this.passwordEncoder.matches(newData.password(), curr.getPassword())){
+            curr.setPassword(this.passwordEncoder.encode((newData.newPassword())));
         }
         this.repository.save(curr);
         return new UserResponseDTO(

@@ -2,7 +2,7 @@ package com.spring.api.API.services;
 
 import com.spring.api.API.Repositories.IPostViewedRepository;
 import com.spring.api.API.models.DTOs.Comments.*;
-import com.spring.api.API.models.PostViewed;
+import com.spring.api.API.models.PostViewed.PostViewed;
 import com.spring.api.API.security.Exceptions.CommentsActionsUnauthorized;
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
@@ -11,10 +11,7 @@ import com.spring.api.API.Repositories.ICommentsRepository;
 import com.spring.api.API.Repositories.IPostsRepository;
 import com.spring.api.API.Repositories.IUserRepository;
 import com.spring.api.API.models.Comments;
-import com.spring.api.API.models.Posts;
-import com.spring.api.API.models.User;
 import com.spring.api.API.security.Exceptions.CommentsNotFoundExceptions;
-import com.spring.api.API.security.Exceptions.PostNotFoundException;
 import com.spring.api.API.security.Exceptions.UserNotFoundException;
 
 import java.util.List;
@@ -41,11 +38,12 @@ public class CommentsService {
 
     @Transactional
     public CommentResponse create(@NonNull CommentsCreateDTO comment, String username){
-        User curr = this.userRepository.findByUsername(username)
-            .orElseThrow(() -> new UserNotFoundException("Something went wrong"));
+        var userId = this.userRepository.getIdByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("Something went wrong"));
+
+        var curr = this.userRepository.getReferenceById(userId);
         
-        Posts post = this.postsRepository.findById(comment.post_id())
-            .orElseThrow(() -> new PostNotFoundException("Post not found"));
+        var post = this.postsRepository.getReferenceById(comment.postId());
         
         Comments newComment = this.repository.save(new Comments(
             post,
@@ -54,7 +52,7 @@ public class CommentsService {
         ));
 
         if (!post.getUser().getId().equals(curr.getId())) {
-            this.postViewedRepository.save(new PostViewed(post, curr));
+            this.postViewedRepository.save(new PostViewed(curr, post));
         }
 
         return new CommentResponse(
@@ -68,27 +66,27 @@ public class CommentsService {
     }
 
     @Transactional
-    public String deleteComment(Long comment_id, String username){
-        Long user_id = this.userRepository.getIdByUsername(username)
+    public String deleteComment(Long commentId, String username){
+        Long userId = this.userRepository.getIdByUsername(username)
             .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        Comments comment = this.repository.findByUserIdAndCommentId(user_id, comment_id)
+        Comments comment = this.repository.findByUserIdAndCommentId(userId, commentId)
             .orElseThrow(() -> new CommentsNotFoundExceptions("Something went wrong!"));
         this.repository.delete(comment);
         return "Successfully";
     }
 
     @Transactional(readOnly = true)
-    public List<CommentResponse> findCommentsByPostId(Long post_id){
-        return this.repository.findCommentsByPostId(post_id);
+    public List<CommentResponse> findCommentsByPostId(Long postId){
+        return this.repository.findCommentsByPostId(postId);
     }
 
     @Transactional
     public CommentResponse updateComment(@NonNull UpdateCommentDTO data, String username){
-        Long user_id = this.userRepository.getIdByUsername(username)
+        Long userId = this.userRepository.getIdByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        Comments comment = this.repository.findCommentByUserIdAndCommentId(user_id, data.id())
+        Comments comment = this.repository.findCommentByUserIdAndCommentId(userId, data.id())
                 .orElseThrow(() -> new CommentsActionsUnauthorized("Unauthorized Actions"));
 
         comment.setContent(data.content());
@@ -107,12 +105,12 @@ public class CommentsService {
     @Transactional
     public CommentResponse replayComment(@NonNull CommentReplyCreate newComment,
                                           String username,
-                                          Long parent_id){
+                                          Long parentId){
 
         var currentUser = this.userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("Something went wrong"));
 
-        var commentToRep = this.repository.getReferenceById(parent_id);
+        var commentToRep = this.repository.getReferenceById(parentId);
         var post = this.postsRepository.getReferenceById(commentToRep.getPost().getId());
 
         var comment = this.repository.save(new Comments(

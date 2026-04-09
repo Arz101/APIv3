@@ -1,12 +1,10 @@
 package com.spring.api.API.Repositories;
 
-import com.spring.api.API.models.DTOs.Follows.FollowResponse;
 import com.spring.api.API.models.DTOs.Follows.FollowSuggestionProjection;
 import com.spring.api.API.models.DTOs.Follows.LoadGraph;
 import com.spring.api.API.models.DTOs.Follows.MutualFollowProjection;
 import com.spring.api.API.models.Follows.Follows;
 import com.spring.api.API.models.Follows.FollowsId;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,7 +15,12 @@ import java.util.Optional;
 public interface IFollowsRepository extends JpaRepository<Follows, FollowsId> {
     Optional<Follows> findByFollowerIdAndFollowedId(Long follower_id, Long followed_id);
 
-    Boolean existsByFollowerIdAndFollowedId(Long follower_id, Long followed_id);
+    @Query("""
+        SELECT COUNT(*) >= 1
+        FROM Follows f
+        WHERE f.followed.id =:followedId AND f.follower.id =:followerId
+    """)
+    Boolean isFollowOf(@Param("followerId")  Long followerId, @Param("followedId") Long followedId);
 
     @Query("""
         SELECT f.followed.id

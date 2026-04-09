@@ -5,11 +5,11 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import com.spring.api.API.models.Email_Tokens;
+import com.spring.api.API.models.EmailTokens;
 
 
 @Repository
-public interface IEmail_TokensRepository extends JpaRepository<Email_Tokens, Long> {
-    @Query("SELECT t FROM Email_Tokens t WHERE t.token_hash = :token")
-    Email_Tokens findToken(@Param("token") String token);
+public interface IEmailTokensRepository extends JpaRepository<EmailTokens, Long> {
+    @Query("SELECT t FROM EmailTokens t WHERE t.tokenHash = :token")
+    EmailTokens findToken(@Param("token") String token);
 }

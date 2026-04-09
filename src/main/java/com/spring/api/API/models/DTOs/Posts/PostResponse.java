@@ -1,14 +1,8 @@
 package com.spring.api.API.models.DTOs.Posts;
 
-
-import java.time.OffsetDateTime;
+import java.util.Set;
 
 public record PostResponse(
-        Long id,
-        String description,
-        String picture,
-        String username,
-        Long likes,
-        Long comments,
-        OffsetDateTime datecreated
+    PostData post,
+    Set<String> hashtags
 ) {}

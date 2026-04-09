@@ -44,7 +44,7 @@ public interface IUserRepository extends JpaRepository<User, Long> {
         SELECT new com.spring.api.API.models.DTOs.User.UserFound(
             u.id,
             u.username,
-            p.avatar_url
+            p.avatarUrl
         )
         FROM User u
         INNER JOIN Profiles p ON u.id = p.user.id

@@ -17,7 +17,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
@@ -59,7 +58,7 @@ public class AuthController {
 
     @PostMapping("/refresh-token")
     public ResponseEntity<?> refreshToken(@Valid @RequestBody() @NonNull TokenRequest token){
-        String username = this.tokenService.validate_refresh_token(token.refresh_token());
+        String username = this.tokenService.validateRefreshToken(token.refresh_token());
         UserDetails user =
                 userDetailsService.loadUserByUsername(username);
 

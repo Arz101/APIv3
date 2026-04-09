@@ -2,10 +2,14 @@ package com.spring.api.API.models;
 
 import com.spring.api.API.models.DTOs.Profile.CreateProfileDTO;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.LocalDate;
 
+@Getter
+@Setter
 @Entity
 @Table(
         name = "profiles",
@@ -19,7 +23,7 @@ public class Profiles {
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         @Column(name = "profile_id")
-        private Long profile_id;
+        private Long profileId;
 
         @OneToOne(fetch = FetchType.LAZY)
         @JoinColumn(name = "user_id")
@@ -35,7 +39,7 @@ public class Profiles {
         private LocalDate birthday;
 
         @Column(name = "avatar_url")
-        private String avatar_url;
+        private String avatarUrl;
 
         @Column(name = "gender", length = 20)
         private String gender;
@@ -54,91 +58,10 @@ public class Profiles {
                 this.name = profileDTO.name();
                 this.lastname = profileDTO.lastname();
                 this.birthday = profileDTO.birthday();
-                this.avatar_url = profileDTO.avatar_url();
+                this.avatarUrl = profileDTO.avatarUrl();
                 this.privateField = profileDTO.privateField();
         }
 
         public Profiles() {
-
         }
-
-        public String getName() {
-                return name;
-        }
-
-        public void setName(String name) {
-                this.name = name;
-        }
-
-        public String getLastname() {
-                return lastname;
-        }
-
-        public void setLastname(String lastname) {
-                this.lastname = lastname;
-        }
-
-        public LocalDate getBirthday() {
-                return birthday;
-        }
-
-        public void setBirthday(LocalDate birthday) {
-                this.birthday = birthday;
-        }
-
-        public String getAvatar_url() {
-                return avatar_url;
-        }
-
-        public void setAvatar_url(String avatar_url) {
-                this.avatar_url = avatar_url;
-        }
-
-        public String getGender() {
-                return gender;
-        }
-
-        public void setGender(String gender) {
-                this.gender = gender;
-        }
-
-        public String getPhone() {
-                return phone;
-        }
-
-        public void setPhone(String phone) {
-                this.phone = phone;
-        }
-
-        public String getBio() {
-                return bio;
-        }
-
-        public void setBio(String bio) {
-                this.bio = bio;
-        }
-
-        public Boolean getPrivateField() {
-                return privateField;
-        }
-
-        public void setPrivateField(Boolean privateField) {
-                this.privateField = privateField;
-        }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public Long getProfile_id() {
-        return profile_id;
-    }
-
-    public void setProfile_id(Long profile_id) {
-        this.profile_id = profile_id;
-    }
 }

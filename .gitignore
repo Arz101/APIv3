@@ -36,5 +36,4 @@ build/
 .env
 .env.*
 !.env.example
-.env
-.env
+.gitignore

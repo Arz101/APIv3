@@ -55,8 +55,8 @@ public class FollowService {
         }
 
         this.repository.save(new Follows(
-                        user,
-                        userTarget,
+                        user_id,
+                        userTarget.getId(),
                         status
                 )
         );

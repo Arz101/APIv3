@@ -19,12 +19,12 @@ public class Follows {
     private FollowsId id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("followerId")
+    @MapsId("follower")
     @JoinColumn(name = "follower_id")
     private User follower;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("followedId")
+    @MapsId("followed")
     @JoinColumn(name = "followed_id")
     private User followed;
 
@@ -37,14 +37,8 @@ public class Follows {
 
     protected Follows(){}
 
-    public Follows(@NonNull User follower, @NonNull User followed, String status) {
-        this.follower = follower;
-        this.followed = followed;
+    public Follows(Long followerId, Long followedId, String status) {
         this.status = status;
-
-        this.id = new FollowsId(
-                follower.getId(),
-                followed.getId()
-        );
+        this.id = new FollowsId(followerId, followedId);
     }
 }

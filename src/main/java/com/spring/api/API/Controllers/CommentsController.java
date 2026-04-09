@@ -2,10 +2,8 @@ package com.spring.api.API.Controllers;
 
 import com.spring.api.API.models.DTOs.Comments.CommentReplyCreate;
 import com.spring.api.API.models.DTOs.Comments.UpdateCommentDTO;
-import org.jspecify.annotations.NonNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -32,26 +30,26 @@ public class CommentsController {
         return ResponseEntity.status(HttpStatus.CREATED).body(this.service.create(comment, user.getUsername()));
     }
 
-    @PostMapping("/reply/{comment_id}")
+    @PostMapping("/reply/{commentId}")
     public ResponseEntity<?> replayComment(@Valid @RequestBody() CommentReplyCreate comment,
-                                           @PathVariable("comment_id") Long comment_id,
+                                           @PathVariable("commentId") Long commentId,
                                            @AuthenticationPrincipal UserDetails user){
-        return ResponseEntity.status(HttpStatus.CREATED).body(this.service.replayComment(comment, user.getUsername(), comment_id));
+        return ResponseEntity.status(HttpStatus.CREATED).body(this.service.replayComment(comment, user.getUsername(), commentId));
     }
 
-    @DeleteMapping("/{comment_id}")
-    public ResponseEntity<?> deleteComment(@PathVariable("comment_id") Long comment_id,
+    @DeleteMapping("/{commentId}")
+    public ResponseEntity<?> deleteComment(@PathVariable("commentId") Long commentId,
                                            @AuthenticationPrincipal UserDetails user){
-        return ResponseEntity.status(HttpStatus.OK).body(this.service.deleteComment(comment_id, user.getUsername()));
+        return ResponseEntity.status(HttpStatus.OK).body(this.service.deleteComment(commentId, user.getUsername()));
     }
 
-    @GetMapping("/{post_id}/tree")
-    public ResponseEntity<?> getCommentsFromPost(@PathVariable("post_id") Long post_id,
+    @GetMapping("/{postId}/tree")
+    public ResponseEntity<?> getCommentsFromPost(@PathVariable("postId") Long postId,
                                                  @AuthenticationPrincipal UserDetails user){
-        return ResponseEntity.ok(this.service.getCommentsByPostId(post_id));
+        return ResponseEntity.ok(this.service.getCommentsByPostId(postId));
     }
 
-    @PatchMapping("/{comment_id}")
+    @PatchMapping("/{commentId}")
     public ResponseEntity<?> updateComment(@Valid @RequestBody()UpdateCommentDTO data,
                                            @AuthenticationPrincipal UserDetails user){
         return ResponseEntity.status(HttpStatus.OK).body(this.service.updateComment(data, user.getUsername()));

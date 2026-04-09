@@ -12,7 +12,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
-@EnableAsync
 public class SocialRecommendationService {
 
     private final SocialDataStore service;

@@ -1,16 +1,17 @@
 package com.spring.api.API.Repositories;
 
 import com.spring.api.API.models.DTOs.Posts.LikedBy;
+import com.spring.api.API.models.Likes.Likes;
+import com.spring.api.API.models.Likes.LikesId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.Modifying;
-import com.spring.api.API.models.Likes.Likes;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
 
-public interface ILikeRepository extends JpaRepository<Likes, Long> {
+public interface ILikeRepository extends JpaRepository<Likes, LikesId> {
     @Query("""
         SELECT COUNT(*) 
         FROM Likes l 

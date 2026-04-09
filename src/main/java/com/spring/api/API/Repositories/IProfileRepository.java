@@ -14,11 +14,11 @@ public interface IProfileRepository extends JpaRepository<Profiles, Long> {
 
     @Query("""
         SELECT new com.spring.api.API.models.DTOs.Profile.ProfileResponseDTO(
-            p.profile_id,
+            p.profileId,
             p.name,
             p.lastname,
             p.birthday,
-            p.avatar_url,
+            p.avatarUrl,
             p.bio,
             p.privateField
         )

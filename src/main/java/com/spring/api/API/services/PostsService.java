@@ -6,8 +6,6 @@ import java.util.stream.Collectors;
 import com.spring.api.API.Repositories.*;
 import com.spring.api.API.models.*;
 import com.spring.api.API.models.DTOs.Posts.*;
-import com.spring.api.API.models.Likes.Likes;
-import com.spring.api.API.models.PostsSaved.PostsSaved;
 import com.spring.api.API.security.Exceptions.PostsActionsUnauthorized;
 import com.spring.api.API.security.Exceptions.ProfilePrivateException;
 import org.jspecify.annotations.NonNull;
@@ -23,57 +21,55 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class PostsService {
     private final IPostsRepository repository;
-    private final ILikeRepository likeRepository;
     private final IFollowsRepository followsRepository;
     private final IUserRepository userRepository;
-    private final IPostViewedRepository postViewedRepository;
     private final IProfileRepository profileRepository;
     private final IHashTagsRepository hashTagsRepository;
     private final StorageService storage;
     private final FeedService feedService;
-    private final IPostsSavedRepository postsSavedRepository;
+    private final CacheAsyncHelper cacheAsyncHelper;
+    private final SocialDataStore store;
 
     public PostsService(IPostsRepository repository,
-                        ILikeRepository likeRepository,
                         IFollowsRepository followsRepository,
                         IUserRepository userRepository,
-                        IPostViewedRepository postViewedRepository,
                         IProfileRepository profileRepository,
                         IHashTagsRepository hashTagsRepository,
                         StorageService storage,
-                        FeedService rankingService,
-                        IPostsSavedRepository postsSavedRepository
-    ) {
+                        FeedService feed,
+                        CacheAsyncHelper cacheAsyncHelper,
+                        SocialDataStore store) {
         this.repository = repository;
-        this.likeRepository = likeRepository;
         this.followsRepository = followsRepository;
         this.userRepository = userRepository;
-        this.postViewedRepository = postViewedRepository;
         this.profileRepository = profileRepository;
         this.hashTagsRepository = hashTagsRepository;
         this.storage = storage;
-        this.feedService = rankingService;
-        this.postsSavedRepository = postsSavedRepository;
+        this.feedService = feed;
+        this.cacheAsyncHelper = cacheAsyncHelper;
+        this.store = store;
     }
 
     @Transactional
-    public PostResponse create(@NonNull CreatePostDTO dto, String username) {
+    public PostData create(@NonNull CreatePostDTO dto, String username) {
         var user_id = this.userRepository.getIdByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
-
-        dto.hashtags().stream().map(h -> h.toLowerCase()
-                .replaceAll("[áàäâ]", "a")
-                .replaceAll("[éèëê]", "e")
-                .replaceAll("[íìïî]", "i")
-                .replaceAll("[óòöô]", "o")
-                .replaceAll("[úùüû]", "u")).
-                collect(Collectors.toSet());
+        var userRef = this.userRepository.getReferenceById(user_id);
 
         Set<Hashtags> hashtags = new HashSet<>();
         if(!dto.hashtags().isEmpty()){
             hashtags = dto.hashtags()
-                    .stream().map(name -> this.hashTagsRepository.existsHashtag(name)
-                            .orElseGet(() -> this.hashTagsRepository.save(new Hashtags(name))))
+                    .stream().map(name -> {
+                        var o = name.toLowerCase()
+                                .replaceAll("[áàäâ]", "a")
+                                .replaceAll("[éèëê]", "e")
+                                .replaceAll("[íìïî]", "i")
+                                .replaceAll("[óòöô]", "o")
+                                .replaceAll("[úùüû]", "u");
+
+                        return this.hashTagsRepository.existsHashtag(name)
+                                .orElseGet(() -> this.hashTagsRepository.save(new Hashtags(o)));
+                    })
                     .collect(Collectors.toSet());
 
             hashtags.forEach(hashtag -> {
@@ -83,18 +79,18 @@ public class PostsService {
         }
 
         var post = this.repository.save(new Posts(
-            dto, this.userRepository.getReferenceById(user_id), hashtags
+            dto, userRef, hashtags
         ));
 
-        return new PostResponse(
-            post.getId(),
-            post.getDescription(),
-            post.getPicture(),
-            username,
-            0L,
-            0L,
-            post.getDatecreated()
+        var postData = new PostData(
+                post.getId(), post.getDescription(), post.getPicture(),
+                username, 0L, 0L, post.getDatecreated()
         );
+
+        this.store.AddNewPosts(postData, username, hashtags.stream()
+                .map(Hashtags::getName).collect(Collectors.toSet()));
+
+        return postData;
     }
 
     public void attachImage(Long postId, MultipartFile file, @NonNull UserDetails user){
@@ -112,14 +108,12 @@ public class PostsService {
     public List<?> getMyPosts(String username) {
         var user_id = this.userRepository.getIdByUsername(username)
             .orElseThrow(() -> new UserNotFoundException("Something went wrong"));
-        //var posts = this.repository.findPosts(user_id);
         var posts = this.feedService.getPostsByMap(username);
-        //return this.transformPostResponse(posts);
         return posts;
     }
 
     @Transactional(readOnly = true)
-    public List<PostResponseWithHashtags> getUserPosts(String target, String currentUser){
+    public List<PostResponse> getUserPosts(String target, String currentUser){
         var target_id = this.verifyPrivateProfile(target, currentUser);
         var posts = this.repository.findPosts(target_id);
         return this.transformPostResponse(posts);
@@ -135,120 +129,27 @@ public class PostsService {
 
         var hashtags_mapped = hashtags.stream()
                 .collect(Collectors.groupingBy(
-                        HashtagsDTO::post_id,
+                        HashtagsDTO::postId,
                         Collectors.mapping(HashtagsDTO::name, Collectors.toSet())
                 ));
 
         return posts.stream().map(post -> {
             var hashes = hashtags_mapped.getOrDefault(post.id(), Set.of());
-            return new PostResponseWithHashtags(
+            return new PostResponse(
                     post, hashes
             );
 
         }).collect(Collectors.toList());
     }
 
-    public Set<?> feed (@NonNull UserDetails user, int page, int size){
+    public List<PostResponse> feed (@NonNull UserDetails user, int page, int size){
         var userId = this.userRepository.getIdByUsername(user.getUsername())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
-        return this.feedService.posts(user.getUsername(),userId, page, size);
+        return this.cacheAsyncHelper.posts(user.getUsername(), userId, page, size);
     }
 
     @Transactional
-    public Map<String,String> setLike(Long post_id, String username){
-        var post = this.repository.getReferenceById(post_id);
-
-        var user_id = this.userRepository.getIdByUsername(username)
-            .orElseThrow(() -> new UserNotFoundException("Something went wrong!"));
-
-        var user = this.userRepository.getReferenceById(user_id);
-
-        var owner = this.userRepository.getReferenceById(post.getUser().getId());
-
-        if (this.profileRepository.isPrivate(owner.getId())) {
-            boolean isFollowing = owner.getFollowers()
-                    .stream()
-                    .anyMatch(t -> t.getFollower().getId().equals(user_id));
-
-            if (!isFollowing) {
-                throw new ProfilePrivateException("This account is private");
-            }
-        }
-
-        if(!this.likeRepository.findLikeByUserAndPost(user_id, post_id)) {
-            this.likeRepository.save(new Likes(user_id, post_id));
-        }
-
-        if (!post.getUser().getId().equals(user_id) &&
-            !this.postViewedRepository.alreadyViewed(user_id, post_id)
-        ) {
-            this.postViewedRepository.save(new PostViewed(post, user));
-            return Map.of("message", "Liked");
-        }
-
-        return Map.of("message", "Already Liked");
-    }
-
-    @Transactional
-    public void unlike(Long postId, String username){
-        var currentUser = this.userRepository.getIdByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException(""));
-        var view = this.postViewedRepository.postView(currentUser, postId);
-        view.setLikes(false);
-        this.likeRepository.deleteByPostIdAndUserId(postId, currentUser);
-    }
-
-    @Transactional
-    public Map savePosts(Long postId, @NonNull UserDetails user){
-        var userId = this.userRepository.getIdByUsername(user.getUsername())
-                .orElseThrow(() -> new UserNotFoundException("Not found"));
-
-        var post = this.repository.getReferenceById(postId);
-        var postsOwnerId = post.getUser().getId();
-
-        if (this.profileRepository.isPrivate(postsOwnerId)) {
-            if (!this.followsRepository.existsFollow(postsOwnerId, userId)) {
-                throw new ProfilePrivateException("This account is private");
-            }
-        }
-
-        this.postsSavedRepository.save(new PostsSaved(userId, postId));
-
-        if(this.postViewedRepository.alreadyViewed(userId, postId)){
-            var pv = this.postViewedRepository.postView(userId, postId);
-            pv.setSave(true);
-            this.postViewedRepository.save(pv);
-        }
-        return Map.of("message", "Post Saved Successfully!");
-    }
-
-    @Transactional
-    public void unsavePosts(Long postId, @NonNull UserDetails user){
-        var userId = this.userRepository.getIdByUsername(user.getUsername())
-                .orElseThrow(() -> new UserNotFoundException("Not found"));
-
-        var post = this.postsSavedRepository.postsSavedByUserIdAndPostsId(userId, postId)
-                .orElseThrow(() -> new PostNotFoundException("Something went wrong"));
-
-        var pv = this.postViewedRepository.postView(userId, postId);
-        pv.setSave(false);
-        this.postViewedRepository.save(pv);
-        this.postsSavedRepository.delete(post);
-    }
-
-    @Transactional(readOnly = true)
-    public List<PostResponseWithHashtags> savedPostsList(@NonNull UserDetails user){
-        var userId = this.userRepository.getIdByUsername(user.getUsername())
-                .orElseThrow(() -> new UserNotFoundException("Not found"));
-
-        var postsIds = this.postsSavedRepository.postsSavedIds(userId);
-        var posts = this.repository.getPostsResponseByIdList(postsIds);
-
-        return this.transformPostResponse(posts);
-    }
-
-    @Transactional
-    public PostResponse updatePost(@NonNull UpdatePostDTO data, Long post_id, String username){
+    public PostData updatePost(@NonNull UpdatePostDTO data, Long post_id, String username){
         Long user_id = this.userRepository.getIdByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("Not found"));
 
@@ -270,18 +171,17 @@ public class PostsService {
         Posts post = this.repository.findPostByUserAndPostId(user_id, post_id)
             .orElseThrow(() -> new PostsActionsUnauthorized("Unauthorized Action"));
 
-        this.likeRepository.deleteAllLikeByPostId(post_id);
         this.repository.delete(post);
     }
 
     @Transactional(readOnly = true)
-    public PostResponse findPostById(Long post_id, String currentUser){
+    public PostData findPostById(Long post_id, String currentUser){
         return this.repository.findPostResponseById(post_id)
             .orElseThrow(() -> new PostNotFoundException("Not found"));
     }
 
     @Transactional(readOnly = true)
-    public PostResponseWithHashtags getPostsWithHashTags(long post_id, String username){
+    public PostResponse getPostsWithHashTags(long post_id, String username){
         Long current_user_id = this.userRepository.getIdByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
@@ -298,18 +198,18 @@ public class PostsService {
             }
         }
 
-        PostResponse postResponse = this.repository.findPostResponseById(post_id)
+        PostData postResponse = this.repository.findPostResponseById(post_id)
                 .orElseThrow(() -> new PostNotFoundException("Not found"));
 
         Set<String> hashtags = this.hashTagsRepository.getHashtagsByPostId(post_id);
 
-        return new PostResponseWithHashtags(
+        return new PostResponse(
                 postResponse,
                 hashtags
         );
     }
 
-    public List<PostResponseWithHashtags> mostPopularPostsByHashtag(String hashtag, String username){
+    public List<PostResponse> mostPopularPostsByHashtag(String hashtag, String username){
         var user_id = this.userRepository.getIdByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("Something went wrong!"));
 
@@ -319,7 +219,7 @@ public class PostsService {
         var popular_posts = this.repository.mostPopularPostsByHashtags(user_id, List.of(hashtag_id));
 
         var posts_response = popular_posts.stream()
-                .map(post -> new PostResponse(
+                .map(post -> new PostData(
                         post.getId(),
                         post.getDescription(),
                         post.getPicture(),
@@ -333,14 +233,14 @@ public class PostsService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostResponseWithHashtags> popularPostsLikedByFolloweds(String username){
+    public List<PostResponse> popularPostsLikedByFolloweds(String username){
         var user_id = this.userRepository.getIdByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("Something went wrong!"));
 
         var popular_posts = this.repository.mostPopularPostLikedByFollowings(user_id);
 
         var posts_response = popular_posts.stream()
-                .map(post -> new PostResponse(
+                .map(post -> new PostData(
                         post.getId(),
                         post.getDescription(),
                         post.getPicture(),
@@ -370,36 +270,32 @@ public class PostsService {
     }
 
     @Transactional(readOnly = true) // Transform PostResponse for add Hashtags
-    private List<PostResponseWithHashtags> transformPostResponse(@NonNull List<PostResponse> posts){
+    private List<PostResponse> transformPostResponse(@NonNull List<PostData> posts){
         var getPostsIds = posts.stream()
-                .map(PostResponse::id)
+                .map(PostData::id)
                 .collect(Collectors.toList());
 
         var hashtags = this.hashTagsRepository.getHashtagsByPostIdList(getPostsIds);
 
         var hashtags_mapped = hashtags.stream()
                 .collect(Collectors.groupingBy(
-                        HashtagsDTO::post_id,
+                        HashtagsDTO::postId,
                         Collectors.mapping(HashtagsDTO::name, Collectors.toSet())
                 ));
 
         return posts.stream().map(post -> {
             var hashes = hashtags_mapped.getOrDefault(post.id(), Set.of());
-            return new PostResponseWithHashtags(
+            return new PostResponse(
                     post, hashes
             );
 
         }).collect(Collectors.toList());
     }
 
-    public List<?> getMostHashOccurrencesByHash(String name){
-        return this.feedService.getMostHashOccurrencesByHash(name);
-    }
-
-    public List<?> tagsLikedByUser(@NonNull UserDetails user){
+    public List<?> testRanking(@NonNull UserDetails user){
         var userId = this.userRepository.getIdByUsername(user.getUsername())
                 .orElseThrow(() -> new UserNotFoundException("Not found"));
 
-        return this.feedService.tagsLikedByUser(user.getUsername(), userId);
+        return this.feedService.postsRecommendations(user.getUsername(), userId);
     }
 }

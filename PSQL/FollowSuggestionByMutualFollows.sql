@@ -22,5 +22,5 @@ WHERE u.id != 994 AND u.id NOT IN (
 )
 GROUP BY u.username, u.id
 ORDER BY Relevant DESC
-LIMIT 50
+LIMIT 30
 

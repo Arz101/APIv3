@@ -2,7 +2,7 @@ package com.spring.api.API.Repositories;
 
 import com.spring.api.API.models.DTOs.Posts.PostProjection;
 import com.spring.api.API.models.Posts;
-import com.spring.api.API.models.DTOs.Posts.PostResponse;
+import com.spring.api.API.models.DTOs.Posts.PostData;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
@@ -14,13 +14,13 @@ public interface IPostsRepository extends JpaRepository<Posts, Long> {
     Optional<Posts> findById(long id);
 
     @Query("""
-        SELECT new com.spring.api.API.models.DTOs.Posts.PostResponse(
+        SELECT new com.spring.api.API.models.DTOs.Posts.PostData(
             p.id,
             p.description,
             p.picture,
             p.user.username,
-            COUNT(l.id),
-            COUNT(c.id),
+            COUNT(DISTINCT l.id),
+            COUNT(DISTINCT c.id),
             p.datecreated
         )
         FROM Posts p
@@ -34,7 +34,7 @@ public interface IPostsRepository extends JpaRepository<Posts, Long> {
             p.user.username,
             p.datecreated
     """)
-    List<PostResponse> getPostsResponseByIdList(@Param("postsId") List<Long> postsId);
+    List<PostData> getPostsResponseByIdList(@Param("postsId") List<Long> postsId);
 
     @Query("""
         SELECT p 
@@ -52,36 +52,32 @@ public interface IPostsRepository extends JpaRepository<Posts, Long> {
     List<Posts> findByFollowingUsernames(List<String> followingUsernames);
 
     @Query("""
-        SELECT new com.spring.api.API.models.DTOs.Posts.PostResponse(
+        SELECT new com.spring.api.API.models.DTOs.Posts.PostData(
             p.id,
             p.description,
             p.picture,
             p.user.username,
-            COUNT(l.id),
-            COUNT(c.id),
+            COUNT(DISTINCT l.id),
+            COUNT(DISTINCT c.id),
             p.datecreated
         )
         FROM Posts p
-        LEFT JOIN Likes l ON l.post = p
-        LEFT JOIN Comments c ON c.post = p    
-        GROUP BY 
-            p.id,
-            p.description,
-            p.picture,
-            p.user.username,
-            p.datecreated
+        LEFT JOIN Likes l ON l.post.id = p.id
+        LEFT JOIN Comments c ON c.post.id = p.id
+        GROUP BY p.id, p.description, p.picture, p.user.username, p.datecreated
+        ORDER BY p.datecreated DESC
     """)
-    List<PostResponse> getAllPosts();
+    List<PostData> getAllPosts();
 
 
     @Query("""
-        SELECT new com.spring.api.API.models.DTOs.Posts.PostResponse(
+        SELECT new com.spring.api.API.models.DTOs.Posts.PostData(
             p.id,
             p.description,
             p.picture,
             p.user.username,
-            COUNT(l.id),
-            COUNT(c.id),
+            COUNT(DISTINCT l.id),
+            COUNT(DISTINCT c.id),
             p.datecreated
         )
         FROM Posts p
@@ -96,16 +92,16 @@ public interface IPostsRepository extends JpaRepository<Posts, Long> {
             p.datecreated
         ORDER BY p.datecreated DESC
     """)
-    List<PostResponse> findFeed(@Param("followingUserIds") List<Long> followingUserIds, Pageable pageable);
+    List<PostData> findFeed(@Param("followingUserIds") List<Long> followingUserIds, Pageable pageable);
 
     @Query("""
-        SELECT new com.spring.api.API.models.DTOs.Posts.PostResponse(
+        SELECT new com.spring.api.API.models.DTOs.Posts.PostData(
             p.id,
             p.description,
             p.picture,
             p.user.username,
-            COUNT(l.id),
-            COUNT(c.id),
+            COUNT(DISTINCT l.id),
+            COUNT(DISTINCT c.id),
             p.datecreated
         )
         FROM Posts p
@@ -120,7 +116,7 @@ public interface IPostsRepository extends JpaRepository<Posts, Long> {
             p.datecreated
         ORDER BY p.datecreated DESC
     """)
-    List<PostResponse> findPosts(@Param("user_id") Long user_id);
+    List<PostData> findPosts(@Param("user_id") Long user_id);
 
     @Query("""
         SELECT p
@@ -130,13 +126,13 @@ public interface IPostsRepository extends JpaRepository<Posts, Long> {
     Optional<Posts> findPostByUserAndPostId(@Param("user_id") Long user_id, Long post_id);
 
     @Query("""
-        SELECT new com.spring.api.API.models.DTOs.Posts.PostResponse(
+        SELECT new com.spring.api.API.models.DTOs.Posts.PostData(
             p.id,
             p.description,
             p.picture,
             p.user.username,
-            COUNT(l.id),
-            COUNT(c.id),
+            COUNT(DISTINCT l.id),
+            COUNT(DISTINCT c.id),
             p.datecreated
         ) 
         FROM Posts p
@@ -150,10 +146,10 @@ public interface IPostsRepository extends JpaRepository<Posts, Long> {
             p.user.username,
             p.datecreated
     """)
-    Optional<PostResponse> findPostResponseById(@Param("post_id") Long post_id);
+    Optional<PostData> findPostResponseById(@Param("post_id") Long post_id);
 
     @Query("""
-        SELECT new com.spring.api.API.models.DTOs.Posts.PostResponse(
+        SELECT new com.spring.api.API.models.DTOs.Posts.PostData(
             p.id,
             p.description,
             p.picture,
@@ -174,7 +170,7 @@ public interface IPostsRepository extends JpaRepository<Posts, Long> {
            p.datecreated,
            l.created_at
    """)
-    List<PostResponse> findPostResponseByIdLikedPosts(@Param("user_id") Long user_id);
+    List<PostData> findPostResponseByIdLikedPosts(@Param("user_id") Long user_id);
 
     @Query(value = """
         SELECT

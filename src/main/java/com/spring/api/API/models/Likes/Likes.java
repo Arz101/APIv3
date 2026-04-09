@@ -34,7 +34,13 @@ public class Likes {
 
     protected Likes() {}
 
-    public Likes(Long userId, Long postId) {
+    public Likes(User user, Posts post) {
+        var userId = user.getId();
+        var postId = post.getId();
+
+        this.user = user;
+        this.post = post;
+
         this.id = new LikesId(userId, postId);
     }
 }

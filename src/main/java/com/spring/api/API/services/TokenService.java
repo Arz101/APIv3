@@ -1,9 +1,9 @@
 package com.spring.api.API.services;
 
-import com.spring.api.API.Repositories.IEmail_TokensRepository;
+import com.spring.api.API.Repositories.IEmailTokensRepository;
 import com.spring.api.API.Repositories.ITokensRepository;
 import com.spring.api.API.Repositories.IUserRepository;
-import com.spring.api.API.models.Email_Tokens;
+import com.spring.api.API.models.EmailTokens;
 import com.spring.api.API.models.Tokens;
 import com.spring.api.API.models.User;
 import com.spring.api.API.security.Exceptions.InvalidTokenException;
@@ -19,47 +19,47 @@ import java.util.UUID;
 public class TokenService {
     private final ITokensRepository repository;
     private final IUserRepository userRepository;
-    private final IEmail_TokensRepository email_TokensRepository;
+    private final IEmailTokensRepository emailTokensRepository;
 
     public TokenService(ITokensRepository repository,
                         IUserRepository userRepository,
-                        IEmail_TokensRepository email_TokensRepository){
+                        IEmailTokensRepository emailTokensRepository){
         this.repository = repository;
         this.userRepository = userRepository;
-        this.email_TokensRepository = email_TokensRepository;
+        this.emailTokensRepository = emailTokensRepository;
     }
 
     @Transactional
     public String create(String username){
         String token;
         long start = System.currentTimeMillis();
-        Long user_id = this.userRepository.getIdByUsername(username)
+        Long userId = this.userRepository.getIdByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));        
 
-        if(this.repository.existsAnActiveToken(user_id)){
-            Tokens currentToken = this.repository.getCurrentTokenByUser(user_id);
+        if(this.repository.existsAnActiveToken(userId)){
+            Tokens currentToken = this.repository.getCurrentTokenByUser(userId);
             currentToken.setRevoked(true);
             this.repository.saveAndFlush(currentToken);
         }
 
         token = UUID.randomUUID().toString();
-        User user = this.userRepository.getReferenceById(user_id);
+        User user = this.userRepository.getReferenceById(userId);
 
-        Tokens new_token = new Tokens();
-        new_token.setTokenHash(token);
-        new_token.setAssignedTo(user);
-        new_token.setExpireAt(OffsetDateTime.now().plusDays(7));
-        new_token.setTokenType((short) 3);
-        new_token.setRevoked(false);
+        Tokens newToken = new Tokens();
+        newToken.setTokenHash(token);
+        newToken.setAssignedTo(user);
+        newToken.setExpireAt(OffsetDateTime.now().plusDays(7));
+        newToken.setTokenType((short) 3);
+        newToken.setRevoked(false);
 
-        this.repository.save(new_token);
+        this.repository.save(newToken);
         System.out.println("REVOKE AND INSERT NEW TOKEN: " + (System.currentTimeMillis() - start));
         return token;
     }
 
     @Transactional(readOnly = true)
-    public String validate_refresh_token(String token_hash){
-        Tokens token = this.repository.findByTokenHashAndRevoked(token_hash, false)
+    public String validateRefreshToken(String tokenHash){
+        Tokens token = this.repository.findByTokenHashAndRevoked(tokenHash, false)
                 .orElseThrow(() -> new InvalidTokenException("Invalid Token"));
 
         if(token.getExpireAt().isBefore(OffsetDateTime.now()) || token.getRevoked()) {
@@ -79,20 +79,20 @@ public class TokenService {
     public String saveAccountTokens(User user){
         String token = UUID.randomUUID().toString();
         
-        Email_Tokens new_token = new Email_Tokens();
-        new_token.setToken_hash(token);
-        new_token.setAssignedTo(user);
-        new_token.setExpire_at(OffsetDateTime.now().plusMinutes(15));
-        new_token.setTokenType((short) 1);
-        new_token.setUsed(false);
+        EmailTokens newToken = new EmailTokens();
+        newToken.setTokenHash(token);
+        newToken.setAssignedTo(user);
+        newToken.setExpireAt(OffsetDateTime.now().plusMinutes(15));
+        newToken.setTokenType((short) 1);
+        newToken.setUsed(false);
 
-        this.email_TokensRepository.save(new_token);
+        this.emailTokensRepository.save(newToken);
         return token;
     }
 
-    public void validateEmailToken(String token_hash){
-        Email_Tokens token = this.email_TokensRepository.findToken(token_hash);
-        if(token == null || token.isUsed() || token.getExpire_at().isBefore(OffsetDateTime.now()))
+    public void validateEmailToken(String tokenHash){
+        EmailTokens token = this.emailTokensRepository.findToken(tokenHash);
+        if(token == null || token.isUsed() || token.getExpireAt().isBefore(OffsetDateTime.now()))
             throw new InvalidTokenException("Invalid or expired token");
 
         User user = token.getAssignedTo();
@@ -103,7 +103,7 @@ public class TokenService {
         this.userRepository.save(user);
 
         token.setUsed(true);
-        this.email_TokensRepository.save(token);
+        this.emailTokensRepository.save(token);
     }
 }
 

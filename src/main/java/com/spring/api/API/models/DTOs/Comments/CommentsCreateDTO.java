@@ -2,11 +2,8 @@ package com.spring.api.API.models.DTOs.Comments;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 public record CommentsCreateDTO (
-    @NotNull Long post_id,
+    @NotNull Long postId,
     @NotBlank String content
 ) {}

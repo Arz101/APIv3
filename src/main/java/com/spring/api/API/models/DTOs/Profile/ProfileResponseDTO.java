@@ -7,11 +7,11 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 
 public record ProfileResponseDTO(
-        Long profile_id,
+        Long profileId,
         String name,
         String lastname,
         LocalDate birthday,
-        String avatar_url,
+        String avatarUrl,
         String bio,
         Boolean privateField
 ){}
