@@ -11,7 +11,6 @@ public record CreatePostDTO (
     Set<String> hashtags
 ) {
     public CreatePostDTO{
-        if(picture == null) picture = "default_picture.png";
         if(hashtags == null) hashtags = new HashSet<>();
     }
 }

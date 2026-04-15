@@ -93,8 +93,10 @@ public class PostsService {
                 this.store.getHashtagsByPosts().getOrDefault(postData.id(), new HashSet<>()));
     }
 
+    @Transactional
     public void attachImage(Long postId, MultipartFile file, @NonNull UserDetails user){
-        var post = this.repository.getReferenceById(postId);
+        Posts post = this.repository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException("Post not found"));
 
         if(!post.getUser().getUsername().equals(user.getUsername())){
             throw new PostsActionsUnauthorized("Unauthorized");
@@ -107,7 +109,7 @@ public class PostsService {
     @Transactional(readOnly = true)
     public List<PostResponse> getMyPosts(String username) {
         var posts = this.store.getPostsByUsers().getOrDefault(username, new HashSet<>());
-        return posts.stream()
+        return posts.stream().sorted(Comparator.comparing(PostData::datecreated).reversed())
                 .map(post -> new PostResponse(post, this.store.getHashtagsByPosts()
                         .getOrDefault(post.id(), new HashSet<>())))
                 .toList();
@@ -134,11 +136,11 @@ public class PostsService {
     }
 
     @Transactional
-    public PostData updatePost(@NonNull UpdatePostDTO data, Long post_id, String username){
+    public PostData updatePost(@NonNull UpdatePostDTO data, Long postId, String username){
         Long user_id = this.userRepository.getIdByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("Not found"));
 
-        Posts post = this.repository.findPostByUserAndPostId(user_id, post_id)
+        Posts post = this.repository.findPostByUserAndPostId(user_id, postId)
                 .orElseThrow(() -> new PostsActionsUnauthorized("Unauthorized Action"));
 
         post.setDescription(data.description());
@@ -149,28 +151,28 @@ public class PostsService {
     }
 
     @Transactional
-    public void deletePost(Long post_id, String username){
+    public void deletePost(Long postId, String username){
         Long user_id = this.userRepository.getIdByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("Not found"));
 
-        Posts post = this.repository.findPostByUserAndPostId(user_id, post_id)
+        Posts post = this.repository.findPostByUserAndPostId(user_id, postId)
             .orElseThrow(() -> new PostsActionsUnauthorized("Unauthorized Action"));
 
         this.repository.delete(post);
     }
 
     @Transactional(readOnly = true)
-    public PostData findPostById(Long post_id, String currentUser){
-        return this.repository.findPostResponseById(post_id)
+    public PostData findPostById(Long postId, String currentUser){
+        return this.repository.findPostResponseById(postId)
             .orElseThrow(() -> new PostNotFoundException("Not found"));
     }
 
     @Transactional(readOnly = true)
-    public PostResponse getPostsWithHashTags(long post_id, String username){
+    public PostResponse getPostsWithHashTags(long postId, String username){
         Long current_user_id = this.userRepository.getIdByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        Posts target_posts = this.repository.getReferenceById(post_id);
+        Posts target_posts = this.repository.getReferenceById(postId);
         User owner_posts = this.userRepository.getReferenceById(target_posts.getUser().getId());
 
         if (this.profileRepository.isPrivate(target_posts.getUser().getId())) {
@@ -183,10 +185,10 @@ public class PostsService {
             }
         }
 
-        PostData postResponse = this.repository.findPostResponseById(post_id)
+        PostData postResponse = this.repository.findPostResponseById(postId)
                 .orElseThrow(() -> new PostNotFoundException("Not found"));
 
-        Set<String> hashtags = this.hashTagsRepository.getHashtagsByPostId(post_id);
+        Set<String> hashtags = this.hashTagsRepository.getHashtagsByPostId(postId);
 
         return new PostResponse(
                 postResponse,
@@ -195,26 +197,11 @@ public class PostsService {
     }
 
     public List<PostResponse> mostPopularPostsByHashtag(String hashtag, String username){
-        var user_id = this.userRepository.getIdByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException("Something went wrong!"));
-
-        var hashtag_id = this.hashTagsRepository.getIdByName(hashtag)
-                .orElseThrow(() -> new RuntimeException("Hashtags not exists or not found"));
-
-        var popular_posts = this.repository.mostPopularPostsByHashtags(user_id, List.of(hashtag_id));
-
-        var posts_response = popular_posts.stream()
-                .map(post -> new PostData(
-                        post.getId(),
-                        post.getDescription(),
-                        post.getPicture(),
-                        post.getUsername(),
-                        post.getLikes(),
-                        post.getComments(),
-                        post.getDatecreated().atOffset(ZoneOffset.UTC)
-                )).collect(Collectors.toList());
-
-        return this.transformPostResponse(posts_response);
+        var posts = this.store.getPostsGroupedByTags().getOrDefault(hashtag, Set.of());
+        return posts.stream()
+                .map(post -> new PostResponse(post,
+                    this.store.getHashtagsByPosts().getOrDefault(post.id(), Set.of())
+                )).limit(50).toList();
     }
 
     @Transactional(readOnly = true)

@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class LikesService {
@@ -85,7 +86,7 @@ public class LikesService {
         this.likeRepository.deleteByPostIdAndUserId(postId, currentUser);
     }
 
-    public Map isLiked(Long postId, String username){
+    public Map<String, Boolean> isLiked(Long postId, String username){
         var userId = this.userRepository.getIdByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("Something went wrong!"));
 
@@ -98,8 +99,8 @@ public class LikesService {
         return Map.of("message", false);
     }
 
-    public Map likesCount(Long postId){
-        var posts = this.store.getPostsLikesByUsers().get(postId);
+    public Map<String, Integer> likesCount(Long postId){
+        var posts = this.store.getPostsLikesByUsers().getOrDefault(postId, Set.of());
         return Map.of("likes", posts.size());
     }
 

@@ -11,7 +11,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface IPostsRepository extends JpaRepository<Posts, Long> {
-    Optional<Posts> findById(long id);
+    @Query("SELECT p FROM Posts p WHERE p.id=:id")
+    Optional<Posts> findById(Long id);
 
     @Query("""
         SELECT new com.spring.api.API.models.DTOs.Posts.PostData(

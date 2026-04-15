@@ -11,4 +11,10 @@ public record PostData(
         Long likes,
         Long comments,
         OffsetDateTime datecreated
-) {}
+) {
+    private static final String BASE_URL = "http://localhost:8080/storage/";
+
+    public PostData {
+        picture = picture != null ? BASE_URL + picture : null;
+    }
+}
