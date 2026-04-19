@@ -5,6 +5,7 @@ import com.spring.api.API.follows.dtos.LoadGraph;
 import com.spring.api.API.follows.dtos.MutualFollowProjection;
 import com.spring.api.API.follows.Follows.Follows;
 import com.spring.api.API.follows.Follows.FollowsId;
+import com.spring.api.API.users.dtos.UserFound;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -61,6 +62,18 @@ public interface IFollowsRepository extends JpaRepository<Follows, FollowsId> {
         WHERE f.status = 'pending' AND f.followed.id =:userId AND f.follower.id =:followerId
     """)
     Optional<Follows> getFollowRequest(@Param("userId") Long userId, @Param("followerId") Long followerId);
+
+    @Query("""
+        SELECT new com.spring.api.API.users.dtos.UserFound( 
+            f.follower.id,
+            f.follower.username,
+            p.avatarUrl
+        )
+        FROM Follows f
+        INNER JOIN Profiles p ON f.follower.id = p.user.id
+        WHERE f.status = 'pending' AND f.followed.id =:userId
+    """)
+    List<UserFound> findAllFollowRequestByUserId(@Param("userId") Long userId);
 
     @Query("""
         SELECT COUNT(*) >= 1

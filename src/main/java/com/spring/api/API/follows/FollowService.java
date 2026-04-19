@@ -7,6 +7,7 @@ import com.spring.api.API.follows.Follows.Follows;
 import com.spring.api.API.users.User;
 import com.spring.api.API.security.Exceptions.FollowNotFoundException;
 import com.spring.api.API.security.Exceptions.UserNotFoundException;
+import com.spring.api.API.users.dtos.UserFound;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -132,5 +133,11 @@ public class FollowService {
                 .orElseThrow(() -> new UserNotFoundException("not found"));
 
         return this.graph.mutualFollows(user, userId);
+    }
+
+    public List<UserFound> followsRequests(UserDetails user){
+        var userId = this.userRepository.getIdByUsername(user.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("Something went wrong"));
+        return this.repository.findAllFollowRequestByUserId(userId);
     }
 }

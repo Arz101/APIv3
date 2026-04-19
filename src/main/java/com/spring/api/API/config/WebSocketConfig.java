@@ -1,4 +1,4 @@
-package com.spring.api.API.security.WebSocketConfig;
+package com.spring.api.API.config;
 
 import org.jspecify.annotations.NonNull;
 import org.springframework.context.annotation.Configuration;

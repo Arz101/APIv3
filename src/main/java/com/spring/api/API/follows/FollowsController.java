@@ -35,7 +35,7 @@ public class FollowsController {
     }
 
     @GetMapping("/followings")
-    public ResponseEntity<?> getFollowingsUsernames(@AuthenticationPrincipal UserDetails user){
+    public ResponseEntity<?> getFollowingsUsernames(@AuthenticationPrincipal @NonNull UserDetails user){
         return ResponseEntity.status(HttpStatus.OK).body(this.service.getFollowingsUsernames(user.getUsername()));
     }
 
@@ -52,15 +52,20 @@ public class FollowsController {
 
     @DeleteMapping
     public ResponseEntity<?> unfollowUser(@RequestParam("username") String username,
-                                          @AuthenticationPrincipal UserDetails user){
+                                          @AuthenticationPrincipal @NonNull UserDetails user){
         this.service.unfollow(username, user.getUsername());
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{userId}/decline")
-    public ResponseEntity<?> declineFollowRequest(@Param("userId") Long userId,
+    public ResponseEntity<?> declineFollowRequest(@PathVariable("userId") Long userId,
                                                   @AuthenticationPrincipal UserDetails user){
         return ResponseEntity.ok(this.service.declineFollowRequest(userId, user));
+    }
+
+    @GetMapping("/requests")
+    public ResponseEntity<?> requestFollows(@AuthenticationPrincipal UserDetails user){
+        return ResponseEntity.ok(this.service.followsRequests(user));
     }
 
     @GetMapping("/mutual")

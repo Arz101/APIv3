@@ -35,10 +35,11 @@ public interface IProfileRepository extends JpaRepository<Profiles, Long> {
 
     @Query("""
         SELECT new com.spring.api.API.profiles.dtos.ProfileStats(
-            (SELECT COUNT(*) FROM Posts p WHERE p.user.id = u.id) AS posts_count,
-            (SELECT COUNT(*) FROM Follows f1 WHERE f1.followed.id = u.id) AS followers_count,
-            (SELECT COUNT(*) FROM Follows f2 WHERE f2.follower.id = u.id) AS followeds_count
-        )
+            (SELECT COUNT(*) FROM Posts p WHERE p.user.id = u.id) AS posts,
+            (SELECT COUNT(*) FROM Follows f WHERE f.followed.id = u.id AND f.status = 'active') AS followers,
+            (SELECT COUNT(*) FROM Follows f WHERE f.follower.id = u.id AND f.status = 'active') AS followings ,
+            (SELECT COUNT(*) FROM Follows f WHERE f.followed.id = u.id AND f.status = 'pending') AS request
+        ) 
         FROM User u
         WHERE u.id =:user_id
     """)
